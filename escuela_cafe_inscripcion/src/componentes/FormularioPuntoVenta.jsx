@@ -14,17 +14,27 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
   const fechasPorPagina = 3;
   const [festivosColombianos, setFestivosColombianos] = useState([]);
   const [inscripcionesPorFecha, setInscripcionesPorFecha] = useState({});
+  const [mostrarInfoEmpleado, setMostrarInfoEmpleado] = useState(true);
   
   const cargoCoordinadora = coordinadoraData?.data?.cargo_general || coordinadoraData?.data?.position || "";
   const puntoVentaCoordinadora = coordinadoraData?.data?.area_nombre || "";
- 
+  
+  // Extraer el nombre del líder (persona que hizo login)
+  const nombreLider = coordinadoraData?.data?.nombre || 
+    coordinadoraData?.data?.name ||
+    (coordinadoraData?.data?.first_name && coordinadoraData?.data?.last_name 
+      ? `${coordinadoraData.data.first_name} ${coordinadoraData.data.last_name}`.trim()
+      : coordinadoraData?.data?.full_name || '');
+  
+  console.log('Nombre del líder (login):', nombreLider, 'coordinadoraData:', coordinadoraData);
   
   const [formData, setFormData] = useState({
     fotoBuk: "",
     nombres: "",
     telefono: "",
     cargo: cargoCoordinadora,
-    puntoVenta: puntoVentaCoordinadora
+    puntoVenta: puntoVentaCoordinadora,
+    nombreLider: nombreLider
   });
 
 
@@ -153,86 +163,79 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
   }, [festivosColombianos, inscripcionesPorFecha]);
 
 
-  useEffect(() => {
-    const buscarEmpleado = async () => {
+  const buscarEmpleado = async () => {
+    if (documento.trim().length < 6) {
+      setMensaje({ texto: "Por favor ingrese al menos 6 dígitos del documento", tipo: "error" });
+      return;
+    }
 
-      if (documento.trim().length < 6) {
-        return;
-      }
-
-      setLoading(true);
-      setMensaje({ texto: "", tipo: "" });
-      
-      try {
-        const response = await fetch(
-          `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${documento}`,
-          {
-            headers: {
-              Accept: "application/json",
-              auth_token: "tmMC1o7cUovQvWoKhvbdhYxx",
-            },
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-
-          let empleadoData = null;
-          
-          if (data && data.ok && Array.isArray(data.data) && data.data.length > 0) {
-            // BUSCAR el empleado que coincida con el documento ingresado
-            empleadoData = data.data.find(emp => emp.document_number == documento);
-
-          } else if (Array.isArray(data) && data.length > 0) {
-            // Caso: directamente un array [...]
-            empleadoData = data.find(emp => emp.document_number == documento);
-
-          }
-          
-          if (empleadoData) {
-
-            setEmpleado(empleadoData);
-            
-
-            if (empleadoData.foto) {
-              localStorage.setItem("picture", empleadoData.foto);
-            }
-            
-
-            setFormData({
-              fotoBuk: empleadoData.foto || "",
-              nombres: empleadoData.nombre || "",
-              telefono: empleadoData.Celular || "",
-              cargo: empleadoData.cargo || "",
-              puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora
-            });
-            
-            setMensaje({ texto: "✓ Empleado encontrado", tipo: "success" });
-          } else {
-            console.log("❌ NO se encontró empleado con document_number:", documento);
-            setEmpleado(null);
-            setMensaje({ texto: "No se encontró empleado con ese documento", tipo: "error" });
-          }
-        } else {
-
-          setEmpleado(null);
-          setMensaje({ texto: "Error al buscar el empleado", tipo: "error" });
+    setLoading(true);
+    setMensaje({ texto: "", tipo: "" });
+    
+    try {
+      const response = await fetch(
+        `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${documento}`,
+        {
+          headers: {
+            Accept: "application/json",
+            auth_token: "tmMC1o7cUovQvWoKhvbdhYxx",
+          },
         }
-      } catch (error) {
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+
+        let empleadoData = null;
+        
+        if (data && data.ok && Array.isArray(data.data) && data.data.length > 0) {
+          // BUSCAR el empleado que coincida con el documento ingresado
+          empleadoData = data.data.find(emp => emp.document_number == documento);
+
+        } else if (Array.isArray(data) && data.length > 0) {
+          // Caso: directamente un array [...]
+          empleadoData = data.find(emp => emp.document_number == documento);
+
+        }
+        
+        if (empleadoData) {
+
+          setEmpleado(empleadoData);
+          
+
+          if (empleadoData.foto) {
+            localStorage.setItem("picture", empleadoData.foto);
+          }
+          
+
+          setFormData({
+            fotoBuk: empleadoData.foto || "",
+            nombres: empleadoData.nombre || "",
+            telefono: empleadoData.Celular || "",
+            cargo: empleadoData.cargo || "",
+            puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora,
+            nombreLider: nombreLider
+          });
+          
+          setMensaje({ texto: "✓ Empleado encontrado", tipo: "success" });
+        } else {
+          console.log("❌ NO se encontró empleado con document_number:", documento);
+          setEmpleado(null);
+          setMensaje({ texto: "No se encontró empleado con ese documento", tipo: "error" });
+        }
+      } else {
+
         setEmpleado(null);
-        setMensaje({ texto: "Error de conexión con la API", tipo: "error" });
-        console.error("Error:", error);
-      } finally {
-        setLoading(false);
+        setMensaje({ texto: "Error al buscar el empleado", tipo: "error" });
       }
-    };
-
-    const timeoutId = setTimeout(() => {
-      buscarEmpleado();
-    }, 800);
-
-    return () => clearTimeout(timeoutId);
-  }, [documento]);
+    } catch (error) {
+      setEmpleado(null);
+      setMensaje({ texto: "Error de conexión con la API", tipo: "error" });
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -246,7 +249,7 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
     const value = e.target.value;
     setDocumento(value);
     
-
+    // Limpiar datos si el documento es muy corto
     if (value.trim().length < 6) {
       setEmpleado(null);
       setFormData({
@@ -254,9 +257,21 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
         nombres: "",
         telefono: "",
         cargo: cargoCoordinadora,
-        puntoVenta: puntoVentaCoordinadora
+        puntoVenta: puntoVentaCoordinadora,
+        nombreLider: nombreLider
       });
       setMensaje({ texto: "", tipo: "" });
+    }
+  };
+
+  const handleBuscarClick = () => {
+    buscarEmpleado();
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      buscarEmpleado();
     }
   };
 
@@ -300,7 +315,8 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
             nombres: "",
             telefono: "",
             cargo: cargoCoordinadora,
-            puntoVenta: puntoVentaCoordinadora
+            puntoVenta: puntoVentaCoordinadora,
+            nombreLider: nombreLider
           });
           setMensaje({ texto: "", tipo: "" });
           
@@ -315,11 +331,7 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
     setLoading(true);
     
     try {
-
-      const nombreCoordinadora = coordinadoraData?.data?.nombre || 
-        (coordinadoraData?.data?.first_name && coordinadoraData?.data?.last_name 
-          ? `${coordinadoraData.data.first_name} ${coordinadoraData.data.last_name}`.trim()
-          : '');
+      console.log('Nombre del líder a guardar:', formData.nombreLider);
       
       const dataToSend = {
         data: {
@@ -330,10 +342,12 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
           foto: formData.fotoBuk,
           pdv: formData.puntoVenta,
           fecha: fechaInscripcion,
-          coordinadora: nombreCoordinadora,
+          lider: formData.nombreLider,
           tipo_formulario: 'punto_venta'
         }
       };
+
+      console.log('Datos a enviar:', dataToSend);
 
       console.log("Enviando datos a la API:", dataToSend);
 
@@ -388,16 +402,42 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
           {/* Búsqueda por documento */}
           <div className="form-section-pv">
             <label className="form-label-pv">NÚMERO DE DOCUMENTO *</label>
+            <div className="search-input-container-pv">
+              <input
+                type="text"
+                placeholder="Ingresa el número de documento"
+                value={documento}
+                onChange={handleDocumentoChange}
+                onKeyPress={handleKeyPress}
+                className="form-input-pv"
+                readOnly={empleado !== null}
+                disabled={empleado !== null}
+              />
+              <button
+                type="button"
+                onClick={handleBuscarClick}
+                className="search-button-pv"
+                disabled={loading || empleado !== null || documento.trim().length < 6}
+                title="Buscar empleado"
+              >
+                <i className="bi bi-search"></i>
+              </button>
+            </div>
+            {loading && <span className="loading-indicator-pv">Buscando empleado...</span>}
+          </div>
+
+          {/* Nombre del Líder (quien hizo login) */}
+          <div className="form-section-pv">
+            <label className="form-label-pv">NOMBRE DEL LÍDER</label>
             <input
               type="text"
-              placeholder="Ingresa el número de documento"
-              value={documento}
-              onChange={handleDocumentoChange}
+              name="nombreLider"
+              value={formData.nombreLider}
               className="form-input-pv"
-              readOnly={empleado !== null}
-              disabled={empleado !== null}
+              readOnly
+              disabled
+              style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
             />
-            {loading && <span className="loading-indicator-pv">Buscando empleado...</span>}
           </div>
 
           {mensaje.texto && (
@@ -406,76 +446,94 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
             </div>
           )}
 
-          {/* Foto */}
-          {formData.fotoBuk && (
-            <div className="form-section-pv photo-section-pv">
-              <label className="form-label-pv">FOTO</label>
-              <div className="photo-preview-pv">
-                <img src={formData.fotoBuk} alt="Foto empleado" className="employee-photo-pv" />
-              </div>
+          {/* Información del Empleado - Colapsable */}
+          {empleado && (
+            <div className={`employee-info-container-pv ${mostrarInfoEmpleado ? 'expanded' : ''}`}>
+              <button
+                type="button"
+                className="toggle-info-button-pv"
+                onClick={() => setMostrarInfoEmpleado(!mostrarInfoEmpleado)}
+              >
+                <span>{mostrarInfoEmpleado ? 'Ocultar información' : 'Mostrar información'}</span>
+                <i className={`bi ${mostrarInfoEmpleado ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+              </button>
+
+              {mostrarInfoEmpleado && (
+                <div className="employee-details-pv">
+                  {/* Foto */}
+                  {formData.fotoBuk && (
+                    <div className="form-section-pv photo-section-pv">
+                      <label className="form-label-pv">FOTO</label>
+                      <div className="photo-preview-pv">
+                        <img src={formData.fotoBuk} alt="Foto empleado" className="employee-photo-pv" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Nombres */}
+                  <div className="form-section-pv">
+                    <label className="form-label-pv">NOMBRES COMPLETOS *</label>
+                    <input
+                      type="text"
+                      name="nombres"
+                      placeholder="Busque por documento para ver los datos"
+                      value={formData.nombres}
+                      onChange={handleInputChange}
+                      className="form-input-pv"
+                      readOnly
+                      disabled
+                      required
+                    />
+                  </div>
+
+                  {/* Teléfono */}
+                  <div className="form-section-pv">
+                    <label className="form-label-pv">TELÉFONO *</label>
+                    <input
+                      type="tel"
+                      name="telefono"
+                      placeholder="Busque por documento para ver los datos"
+                      value={formData.telefono}
+                      onChange={handleInputChange}
+                      className="form-input-pv"
+                      readOnly
+                      disabled
+                      required
+                    />
+                  </div>
+
+                  {/* Cargo */}
+                  <div className="form-section-pv">
+                    <label className="form-label-pv">CARGO *</label>
+                    <input
+                      type="text"
+                      name="cargo"
+                      placeholder="Cargo actual"
+                      value={empleado?.custom_attributes?.['Cargo General'] || formData.cargo}
+                      className="form-input-pv"
+                      readOnly
+                      disabled
+                      required
+                    />
+                  </div>
+
+                  {/* Punto de venta */}
+                  <div className="form-section-pv">
+                    <label className="form-label-pv">PUNTO DE VENTA</label>
+                    <input
+                      type="text"
+                      name="puntoVenta"
+                      placeholder="Ubicación o punto de venta"
+                      value={formData.puntoVenta}
+                      className="form-input-pv"
+                      readOnly
+                      disabled
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
-
-          {/* Nombres */}
-          <div className="form-section-pv">
-            <label className="form-label-pv">NOMBRES COMPLETOS *</label>
-            <input
-              type="text"
-              name="nombres"
-              placeholder="Busque por documento para ver los datos"
-              value={formData.nombres}
-              onChange={handleInputChange}
-              className="form-input-pv"
-              readOnly
-              disabled
-              required
-            />
-          </div>
-
-          {/* Teléfono */}
-          <div className="form-section-pv">
-            <label className="form-label-pv">TELÉFONO *</label>
-            <input
-              type="tel"
-              name="telefono"
-              placeholder="Busque por documento para ver los datos"
-              value={formData.telefono}
-              onChange={handleInputChange}
-              className="form-input-pv"
-              readOnly
-              disabled
-              required
-            />
-          </div>
-
-          {/* Cargo */}
-          <div className="form-section-pv">
-            <label className="form-label-pv">CARGO *</label>
-            <input
-              type="text"
-              name="cargo"
-              placeholder="Cargo actual"
-              value={empleado?.custom_attributes?.['Cargo General'] || formData.cargo}
-              className="form-input-pv"
-              readOnly
-              disabled
-              required
-            />
-          </div>
-
-          {/* Punto de venta */}
-          <div className="form-section-pv">
-            <label className="form-label-pv">PUNTO DE VENTA</label>
-            <input
-              type="text"
-              name="puntoVenta"
-              placeholder="Ubicación o punto de venta"
-              value={formData.puntoVenta}
-              className="form-input-pv"
-              readOnly
-              disabled
-            />
-          </div>
 
           {/* Selección de fecha (martes, miércoles, jueves) en tarjetas */}
           {fechasDisponibles.length > 0 && (
@@ -574,7 +632,8 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
                   nombres: "",
                   telefono: "",
                   cargo: cargoCoordinadora,
-                  puntoVenta: puntoVentaCoordinadora
+                  puntoVenta: puntoVentaCoordinadora,
+                  nombreLider: nombreLider
                 });
                 setFechaInscripcion("");
                 setMensaje({ texto: "", tipo: "" });

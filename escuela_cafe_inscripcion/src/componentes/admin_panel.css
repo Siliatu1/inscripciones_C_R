@@ -240,12 +240,46 @@
   font-weight: 700;
   color: #2C2416;
   margin-bottom: 8px;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .admin-subtitle {
   font-size: 16px;
   color: #8B7355;
   margin-bottom: 40px;
+}
+
+/* Filtros de Búsqueda */
+.filters-container {
+  margin-bottom: 30px;
+  padding: 25px;
+  background: linear-gradient(135deg, #cabba7cc 0%, #d4c4b0cc 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.filters-container:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.filters-title {
+  margin-bottom: 18px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2C2416;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filters-title::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
+  border-radius: 2px;
 }
 
 /* Stats Grid */
@@ -520,14 +554,26 @@
   
   .admin-main {
     padding: 25px 20px;
+    padding-top: 80px;
   }
   
   .admin-title {
     font-size: 32px;
+    margin-top: 0;
   }
   
   .admin-subtitle {
     font-size: 14px;
+  }
+  
+  .filters-container {
+    padding: 20px;
+    margin-bottom: 25px;
+  }
+
+  .filters-title {
+    font-size: 16px;
+    margin-bottom: 15px;
   }
   
   .stats-grid {
@@ -595,14 +641,32 @@
   
   .admin-main {
     padding: 20px 15px;
+    padding-top: 75px;
   }
   
   .admin-title {
     font-size: 26px;
+    margin-top: 0;
   }
   
   .admin-subtitle {
     font-size: 13px;
+  }
+  
+  .filters-container {
+    padding: 18px 15px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+  }
+
+  .filters-title {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .filters-title::before {
+    width: 3px;
+    height: 16px;
   }
   
   .stat-card {
@@ -675,10 +739,22 @@
   
   .admin-main {
     padding: 15px 10px;
+    padding-top: 70px;
   }
   
   .admin-title {
     font-size: 22px;
+    margin-top: 0;
+  }
+  
+  .filters-container {
+    padding: 15px 12px;
+    margin-bottom: 15px;
+  }
+
+  .filters-title {
+    font-size: 14px;
+    margin-bottom: 10px;
   }
   
   .stat-card {

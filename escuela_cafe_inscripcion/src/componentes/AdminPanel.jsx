@@ -15,7 +15,6 @@ const AdminPanel = ({ userData, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [filtros, setFiltros] = useState({
     cedula: '',
-    dia: null,
     puntoVenta: ''
   });
   const [dataFiltrada, setDataFiltrada] = useState([]);
@@ -23,6 +22,13 @@ const AdminPanel = ({ userData, onLogout }) => {
   const [registroEditar, setRegistroEditar] = useState(null);
   const [nuevaFecha, setNuevaFecha] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+
+  const nombreUsuario = userData?.data?.nombre || 
+    userData?.data?.name ||
+    (userData?.data?.first_name && userData?.data?.last_name 
+      ? `${userData.data.first_name} ${userData.data.last_name}`.trim()
+      : userData?.data?.full_name || '');
 
   const rolesHeladeria = [
     'COORDINADORA HELADERIA',
@@ -86,6 +92,7 @@ const AdminPanel = ({ userData, onLogout }) => {
               puntoVenta: item.attributes?.pdv || '',
               dia: item.attributes?.fecha || '',
               coordinadora: item.attributes?.coordinadora || '',
+              nombreLider: item.attributes?.lider || '',
               tipoFormulario: item.attributes?.tipo_formulario || ''
             };
             return mapped;
@@ -105,21 +112,21 @@ const AdminPanel = ({ userData, onLogout }) => {
         const puntoVentaUsuario = userData?.data?.area_nombre || userData?.area_nombre || '';
         let dataFiltradaPorRol = dataArray;
         
-
-        
+        // Roles que pueden ver todos los registros
         if (rolesVerTodo.includes(cargoUsuario)) {
-  
           dataFiltradaPorRol = dataArray;
-
-        } else {
-
-
+        } 
+        // Roles de heladería y punto de venta ven solo su PDV
+        else if (rolesHeladeria.includes(cargoUsuario) || rolesPuntoVenta.includes(cargoUsuario)) {
           dataFiltradaPorRol = dataArray.filter(item => {
             const pdvItem = item.puntoVenta || '';
             const coincide = pdvItem === puntoVentaUsuario;
-
             return coincide;
           });
+        }
+        // Cualquier otro usuario autenticado puede ver todos los registros
+        else {
+          dataFiltradaPorRol = dataArray;
         }
         
 
@@ -197,13 +204,6 @@ const AdminPanel = ({ userData, onLogout }) => {
       );
     }
 
-    if (filtros.dia) {
-      const fechaSeleccionada = filtros.dia.format('YYYY-MM-DD');
-      dataTemp = dataTemp.filter(item => 
-        item.dia && item.dia.startsWith(fechaSeleccionada)
-      );
-    }
-
     if (filtros.puntoVenta) {
       dataTemp = dataTemp.filter(item => 
         item.puntoVenta && item.puntoVenta.toLowerCase().includes(filtros.puntoVenta.toLowerCase())
@@ -213,10 +213,14 @@ const AdminPanel = ({ userData, onLogout }) => {
     setDataFiltrada(dataTemp);
   };
 
+  // Aplicar filtros automáticamente cuando cambien
+  useEffect(() => {
+    aplicarFiltros();
+  }, [filtros, inscripciones]);
+
 
   const limpiarFiltros = () => {
-    setFiltros({ cedula: '', dia: null, puntoVenta: '' });
-    setDataFiltrada(inscripciones);
+    setFiltros({ cedula: '', puntoVenta: '' });
   };
 
 
@@ -233,6 +237,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       'Teléfono': item.telefono || '',
       'Cargo': item.cargo || '',
       'Punto de Venta': item.puntoVenta || '',
+      'Nombre Líder': item.nombreLider || '',
       'Día': item.dia || '',
       
     }));
@@ -342,6 +347,12 @@ const AdminPanel = ({ userData, onLogout }) => {
       dataIndex: 'puntoVenta',
       key: 'puntoVenta',
       width: 150,
+    },
+    {
+      title: 'Nombre Líder',
+      dataIndex: 'nombreLider',
+      key: 'nombreLider',
+      width: 180,
     },
     {
       title: 'Día',
@@ -458,20 +469,19 @@ const AdminPanel = ({ userData, onLogout }) => {
         <main className="admin-main">
         <div className="admin-content">
 
-          <h1 className="admin-title">BIENVENIDA ADMINISTRADORA</h1>
+          <h1 className="admin-title">HOLA, {nombreUsuario}</h1>
 
           <h2 className="admin-subtitle">Gestiona estudiantes y cursos de la escuela de café</h2>
 
           {/* Filtros */}
-          <div style={{ marginBottom: 20, padding: '20px', background: '#cabba7cc', borderRadius: '8px' }}>
-            <h3 style={{ marginBottom: 15 }}>Filtros de Búsqueda</h3>
-            <Space wrap>
+          <div className="filters-container">
+            <h3 className="filters-title">Filtros de Búsqueda</h3>
+            <Space wrap size="middle" style={{ width: '100%' }}>
               <Input
                 placeholder="Buscar por cédula"
                 prefix={<SearchOutlined />}
                 value={filtros.cedula}
                 onChange={(e) => setFiltros({ ...filtros, cedula: e.target.value })}
-                onPressEnter={aplicarFiltros}
                 style={{ width: 200 }}
               />
               <Select
@@ -491,20 +501,6 @@ const AdminPanel = ({ userData, onLogout }) => {
                     <Select.Option key={pdv} value={pdv}>{pdv}</Select.Option>
                   ))}
               </Select>
-              <DatePicker
-                placeholder="Seleccionar día"
-                value={filtros.dia}
-                onChange={(date) => setFiltros({ ...filtros, dia: date })}
-                format="YYYY-MM-DD"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    aplicarFiltros();
-                  }
-                }}
-              />
-              <Button type="primary" onClick={aplicarFiltros}>
-                Aplicar Filtros
-              </Button>
               <Button onClick={limpiarFiltros}>
                 Limpiar
               </Button>
