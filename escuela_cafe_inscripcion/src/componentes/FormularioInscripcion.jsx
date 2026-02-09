@@ -19,14 +19,13 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
   const cargoCoordinadora = coordinadoraData?.data?.cargo_general || coordinadoraData?.data?.position || "";
   const puntoVentaCoordinadora = coordinadoraData?.data?.area_nombre || "";
   
-  // Extraer el nombre del líder (persona que hizo login)
+ 
   const nombreLider = coordinadoraData?.data?.nombre || 
     coordinadoraData?.data?.name ||
     (coordinadoraData?.data?.first_name && coordinadoraData?.data?.last_name 
       ? `${coordinadoraData.data.first_name} ${coordinadoraData.data.last_name}`.trim()
       : coordinadoraData?.data?.full_name || '');
-  
-  console.log('Nombre del líder (login):', nombreLider, 'coordinadoraData:', coordinadoraData);
+
   
   const [formData, setFormData] = useState({
     fotoBuk: "",
@@ -37,14 +36,14 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     nombreLider: nombreLider
   });
 
-  // festivos 
+
   useEffect(() => {
     const cargarFestivos = async () => {
       try {
         const response = await fetch('https://date.nager.at/api/v3/PublicHolidays/2026/CO');
         if (response.ok) {
           const festivos = await response.json();
-          // Guardar solo las fechas de los festivos
+
           const fechasFestivos = festivos.map(f => f.date);
           setFestivosColombianos(fechasFestivos);
           console.log("Festivos colombianos cargados:", fechasFestivos);
@@ -186,7 +185,7 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
 
         
         if (data && data.ok && data.data && data.data.length > 0) {
-          // BUSCAR el empleado que coincida con el documento ingresado
+
           const empleadoData = data.data.find(emp => emp.document_number == documento);
           
 
@@ -245,7 +244,7 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     const value = e.target.value;
     setDocumento(value);
     
-    // Limpiar datos si el documento es muy corto
+
     if (value.trim().length < 6) {
       setEmpleado(null);
       setFormData({

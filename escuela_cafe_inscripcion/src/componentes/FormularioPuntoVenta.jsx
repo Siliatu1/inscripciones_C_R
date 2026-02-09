@@ -19,7 +19,7 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
   const cargoCoordinadora = coordinadoraData?.data?.cargo_general || coordinadoraData?.data?.position || "";
   const puntoVentaCoordinadora = coordinadoraData?.data?.area_nombre || "";
   
-  // Extraer el nombre del líder (persona que hizo login)
+
   const nombreLider = coordinadoraData?.data?.nombre || 
     coordinadoraData?.data?.name ||
     (coordinadoraData?.data?.first_name && coordinadoraData?.data?.last_name 
@@ -122,10 +122,10 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
       
 
       if (diaSemana === 2 || diaSemana === 3 || diaSemana === 4) {
-        // Formatear fecha como YYYY-MM-DD sin conversiones UTC
+
         const fechaStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
         
-        // Verificar si es festivo
+
         const esFestivo = festivosColombianos.includes(fechaStr);
         
 
@@ -189,11 +189,11 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
         let empleadoData = null;
         
         if (data && data.ok && Array.isArray(data.data) && data.data.length > 0) {
-          // BUSCAR el empleado que coincida con el documento ingresado
+
           empleadoData = data.data.find(emp => emp.document_number == documento);
 
         } else if (Array.isArray(data) && data.length > 0) {
-          // Caso: directamente un array [...]
+
           empleadoData = data.find(emp => emp.document_number == documento);
 
         }
@@ -249,7 +249,7 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
     const value = e.target.value;
     setDocumento(value);
     
-    // Limpiar datos si el documento es muy corto
+  s
     if (value.trim().length < 6) {
       setEmpleado(null);
       setFormData({

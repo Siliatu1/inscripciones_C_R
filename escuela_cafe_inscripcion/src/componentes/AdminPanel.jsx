@@ -112,11 +112,11 @@ const AdminPanel = ({ userData, onLogout }) => {
         const puntoVentaUsuario = userData?.data?.area_nombre || userData?.area_nombre || '';
         let dataFiltradaPorRol = dataArray;
         
-        // Roles que pueden ver todos los registros
+
         if (rolesVerTodo.includes(cargoUsuario)) {
           dataFiltradaPorRol = dataArray;
         } 
-        // Roles de heladería y punto de venta ven solo su PDV
+
         else if (rolesHeladeria.includes(cargoUsuario) || rolesPuntoVenta.includes(cargoUsuario)) {
           dataFiltradaPorRol = dataArray.filter(item => {
             const pdvItem = item.puntoVenta || '';
@@ -124,7 +124,7 @@ const AdminPanel = ({ userData, onLogout }) => {
             return coincide;
           });
         }
-        // Cualquier otro usuario autenticado puede ver todos los registros
+
         else {
           dataFiltradaPorRol = dataArray;
         }
@@ -213,7 +213,7 @@ const AdminPanel = ({ userData, onLogout }) => {
     setDataFiltrada(dataTemp);
   };
 
-  // Aplicar filtros automáticamente cuando cambien
+
   useEffect(() => {
     aplicarFiltros();
   }, [filtros, inscripciones]);
@@ -245,7 +245,7 @@ const AdminPanel = ({ userData, onLogout }) => {
     const ws = XLSX.utils.json_to_sheet(datosExportar);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Inscripciones');
-    XLSX.writeFile(wb, `Inscripciones_Escuela_Cafe_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `Inscripciones${new Date().toISOString().split('T')[0]}.xlsx`);
     message.success('Archivo Excel exportado exitosamente');
   };
 
@@ -541,31 +541,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       </main>
       </div>
 
-      {/* Modal para editar fecha */}
-      <Modal
-        title="Editar Fecha de Inscripción"
-        open={modalEditar}
-        onOk={guardarEdicion}
-        onCancel={cancelarEdicion}
-        okText="Guardar"
-        cancelText="Cancelar"
-      >
-        <div style={{ marginBottom: 16 }}>
-          <p><strong>Estudiante:</strong> {registroEditar?.nombres}</p>
-          <p><strong>Cédula:</strong> {registroEditar?.cedula}</p>
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: 8 }}>
-            <strong>Nueva Fecha:</strong>
-          </label>
-          <DatePicker
-            value={nuevaFecha}
-            onChange={(date) => setNuevaFecha(date)}
-            format="YYYY-MM-DD"
-            style={{ width: '100%' }}
-          />
-        </div>
-      </Modal>
+      
     </div>
   );
 };
