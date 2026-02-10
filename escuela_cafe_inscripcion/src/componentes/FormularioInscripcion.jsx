@@ -482,12 +482,10 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
                     <input
                       type="tel"
                       name="telefono"
-                      placeholder="Busque por documento para ver los datos"
+                      placeholder="Ingrese el número de teléfono"
                       value={formData.telefono}
                       onChange={handleInputChange}
                       className="form-input"
-                      readOnly
-                      disabled
                       required
                     />
                   </div>

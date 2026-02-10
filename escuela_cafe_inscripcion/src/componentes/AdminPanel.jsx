@@ -3,10 +3,9 @@ import "./admin_panel.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import FormularioInscripcion from "./FormularioInscripcion";
 import FormularioPuntoVenta from "./FormularioPuntoVenta";
-import { Table, Input, DatePicker, Button, Space, message, Modal, Popconfirm, Select } from "antd";
-import { SearchOutlined, DownloadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Input, Button, Space, message, Popconfirm, Select } from "antd";
+import { SearchOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
-import dayjs from 'dayjs';
 
 const AdminPanel = ({ userData, onLogout }) => {
   const [showFormulario, setShowFormulario] = useState(false);
@@ -18,9 +17,6 @@ const AdminPanel = ({ userData, onLogout }) => {
     puntoVenta: ''
   });
   const [dataFiltrada, setDataFiltrada] = useState([]);
-  const [modalEditar, setModalEditar] = useState(false);
-  const [registroEditar, setRegistroEditar] = useState(null);
-  const [nuevaFecha, setNuevaFecha] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
 
@@ -47,7 +43,14 @@ const AdminPanel = ({ userData, onLogout }) => {
   const rolesVerTodo = [
     'ANALISTA EVENTOS Y HELADERIAS',
     'JEFE OPERATIVO DE MERCADEO',
-    'JEFE DE DESARROLLO DE PRODUCTO',
+    'JEFE DESARROLLO DE PRODUCTO',
+    'DIRECTORA DE LINEAS DE PRODUCTO',
+    'ANALISTA DE PRODUCTO',
+  ];
+
+  
+  const rolesAccesoDual = [
+    'JEFE DESARROLLO DE PRODUCTO',
     'DIRECTORA DE LINEAS DE PRODUCTO',
     'ANALISTA DE PRODUCTO',
   ];
@@ -175,6 +178,23 @@ const AdminPanel = ({ userData, onLogout }) => {
     }
   };
 
+  const handleAbrirFormularioPuntoVenta = () => {
+    setTipoFormulario("punto_venta");
+    setShowFormulario(true);
+  };
+
+
+  const handleAbrirFormularioEscuelaCafe = () => {
+    setTipoFormulario("heladeria");
+    setShowFormulario(true);
+  };
+
+
+  const tieneAccesoDual = () => {
+    const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
+    return rolesAccesoDual.includes(cargoUsuario);
+  };
+
   const handleVolverPanel = () => {
     setShowFormulario(false);
     setTipoFormulario("");
@@ -266,54 +286,6 @@ const AdminPanel = ({ userData, onLogout }) => {
       console.error('Error al eliminar:', error);
       message.error('Error de conexión al eliminar');
     }
-  };
-
-  // Editar inscripción (solo fecha)   ESTO NOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-  const handleEditar = (record) => {
-    setRegistroEditar(record);
-    
-    setNuevaFecha(record.dia ? dayjs(record.dia, 'YYYY-MM-DD') : null);
-    setModalEditar(true);
-  };
-
-  const guardarEdicion = async () => {
-    if (!nuevaFecha) {
-      message.warning('Por favor seleccione una fecha');
-      return;
-    }
-
-    try {
-      const response = await fetch(`https://macfer.crepesywaffles.com/api/cap-cafes/${registroEditar.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data: {
-            fecha: nuevaFecha.format('YYYY-MM-DD')
-          }
-        })
-      });
-
-      if (response.ok) {
-        message.success('Fecha actualizada exitosamente');
-        setModalEditar(false);
-        setRegistroEditar(null);
-        setNuevaFecha(null);
-        cargarInscripciones(); 
-      } else {
-        message.error('Error al actualizar la fecha');
-      }
-    } catch (error) {
-      console.error('Error al editar:', error);
-      message.error('Error de conexión al editar');
-    }
-  };
-
-  const cancelarEdicion = () => {
-    setModalEditar(false);
-    setRegistroEditar(null);
-    setNuevaFecha(null);
   };
 
   // Configuración de columnas de la tabla
@@ -428,12 +400,10 @@ const AdminPanel = ({ userData, onLogout }) => {
 
   return (
     <div className="admin-container">
-      {/* Botón hamburguesa para móvil */}
       <button className="mobile-menu-toggle" onClick={toggleSidebar}>
         <i className="bi bi-list"></i>
       </button>
-
-      {/* Overlay para cerrar sidebar en móvil */}
+      
       <div 
         className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
         onClick={closeSidebar}
@@ -447,10 +417,24 @@ const AdminPanel = ({ userData, onLogout }) => {
             <i className="bi bi-grid-fill"></i>
             <span>Panel</span>
           </a>
-          <a href="#" className="sidebar-item" onClick={(e) => { handleRegistrarPersona(e); closeSidebar(); }}>
-            <i className="bi bi-person-plus-fill"></i>
-            <span>Registrar</span>
-          </a>
+          
+          {tieneAccesoDual() ? (
+            <>
+              <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioEscuelaCafe(); closeSidebar(); }}>
+                <i className="bi bi-cup-hot-fill"></i>
+                <span>Inscripción Escuela del Café</span>
+              </a>
+              <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioPuntoVenta(); closeSidebar(); }}>
+                <i className="bi bi-shop"></i>
+                <span>Inscripción Punto de Venta</span>
+              </a>
+            </>
+          ) : (
+            <a href="#" className="sidebar-item" onClick={(e) => { handleRegistrarPersona(e); closeSidebar(); }}>
+              <i className="bi bi-person-plus-fill"></i>
+              <span>Registrar</span>
+            </a>
+          )}
         </nav>
 
         <div className="sidebar-footer">

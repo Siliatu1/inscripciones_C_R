@@ -19,12 +19,16 @@ const Login_admin = () => {
     setMensaje({ texto: "", tipo: "" });
     
     try {
+      console.log(`Intentando validar documento: ${documento}`);
       const response = await fetch(
         `https://apialohav2.crepesywaffles.com/buk/empleados2/${documento}`
       );
 
+      console.log(`Respuesta del servidor: Status ${response.status}`);
+
       if (response.ok) {
         const data = await response.json();
+        console.log("Datos recibidos:", data);
         setMensaje({ texto: "Documento validado correctamente", tipo: "success" });
 
 
@@ -34,11 +38,16 @@ const Login_admin = () => {
         }, 1500);
         
       } else {
-        setMensaje({ texto: "Documento no autorizado", tipo: "error" });
+        const errorText = await response.text();
+        console.error(`Error del servidor: Status ${response.status}, Respuesta:`, errorText);
+        setMensaje({ 
+          texto: `Documento no autorizado (Error ${response.status})`, 
+          tipo: "error" 
+        });
       }
     } catch (error) {
-      setMensaje({ texto: "Error al validar el documento", tipo: "error" });
-      console.error("Error:", error);
+      console.error("Error al validar el documento:", error);
+      setMensaje({ texto: "Error de conexión al validar el documento", tipo: "error" });
     } finally {
       setLoading(false);
     }
