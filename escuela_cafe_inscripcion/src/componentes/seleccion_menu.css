@@ -1,0 +1,218 @@
+.seleccion-menu-container {
+  min-height: 100vh;
+  background:linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.seleccion-menu-header {
+  text-align: center;
+  margin-bottom: 60px;
+  width: 100%;
+  max-width: 1200px;
+  position: relative;
+}
+
+.back-button-sm {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.back-button-sm:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(5px);
+}
+
+.seleccion-menu-title {
+  color: white;
+  font-size: 2.5em;
+  margin: 20px 0 10px 0;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.seleccion-menu-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.3em;
+  font-weight: 400;
+  margin: 0;
+}
+
+.cards-container-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 50px;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 40px;
+  justify-content: center;
+}
+
+.menu-card-sm {
+  background: white;
+  border-radius: 25px;
+  padding: 60px 45px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  min-height: 400px;
+}
+
+.menu-card-sm::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.menu-card-sm:hover::before {
+  transform: scaleX(1);
+}
+
+.menu-card-sm:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.menu-card-sm.escuela-cafe {
+  border-top: 4px solid #9cbf8b;
+}
+
+.menu-card-sm.evaluacion-toderas {
+  border-top: 4px solid #e0a96d;
+}
+
+.card-icon-sm {
+  font-size: 5.5em;
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.menu-card-sm.escuela-cafe .card-icon-sm {
+  color: #9cbf8b;
+  background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.menu-card-sm.evaluacion-toderas .card-icon-sm {
+  color: #e0a96d;
+  background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-title-sm {
+  font-size: 2.2em;
+  font-weight: 700;
+  color: #333;
+  margin: 15px 0;
+  text-align: center;
+  width: 100%;
+}
+
+.card-description-sm {
+  font-size: 1.3em;
+  color: #666;
+  margin: 15px 0 25px 0;
+  line-height: 1.6;
+}
+
+.card-arrow-sm {
+  font-size: 3em;
+  color: #8B7355;
+  margin-top: 20px;
+  transition: transform 0.3s ease;
+}
+
+.menu-card-sm:hover .card-arrow-sm {
+  transform: translateX(10px);
+}
+
+.menu-card-sm.escuela-cafe .card-arrow-sm {
+  color: #773c05;
+}
+
+.menu-card-sm.evaluacion-toderas .card-arrow-sm {
+  color:#773c05;
+}
+
+
+@media (max-width: 768px) {
+  .seleccion-menu-title {
+    font-size: 2em;
+    margin-top: 50px;
+  }
+
+  .seleccion-menu-subtitle {
+    font-size: 1.1em;
+  }
+
+  .cards-container-sm {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 0 20px;
+  }
+
+  .menu-card-sm {
+    padding: 40px 30px;
+    min-height: 350px;
+  }
+
+  .back-button-sm {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+  }
+}
+
+@media (max-width: 480px) {
+  .seleccion-menu-header {
+    margin-bottom: 30px;
+  }
+
+  .card-icon-sm {
+    font-size: 3em;
+  }
+
+  .card-title-sm {
+    font-size: 1.5em;
+  }
+
+  .card-description-sm {
+    font-size: 1em;
+  }
+}

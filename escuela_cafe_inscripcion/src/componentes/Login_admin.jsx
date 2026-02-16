@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./login_admin.css";
 import AdminPanel from "./AdminPanel";
+import AsistenciaPanel from "./AsistenciaPanel";
 
 const Login_admin = () => {
   const [documento, setDocumento] = useState("");
@@ -62,6 +63,14 @@ const Login_admin = () => {
 
 
   if (isAuthenticated) {
+    const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
+    
+
+    if (cargoUsuario === 'INSTRUCTOR') {
+      return <AsistenciaPanel userData={userData} onLogout={handleLogout} />;
+    }
+    
+
     return <AdminPanel userData={userData} onLogout={handleLogout} />;
   }
 

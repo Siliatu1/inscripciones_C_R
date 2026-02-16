@@ -22,7 +22,58 @@
   left: 0;
   top: 0;
   z-index: 1000;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.admin-sidebar.collapsed {
+  width: 70px;
+}
+
+.admin-sidebar.collapsed .sidebar-item span,
+.admin-sidebar.collapsed .sidebar-logout span {
+  display: none;
+}
+
+.admin-sidebar.collapsed .sidebar-item {
+  justify-content: center;
+  padding: 15px 10px;
+}
+
+.admin-sidebar.collapsed .sidebar-logout {
+  justify-content: center;
+  padding: 12px 10px;
+}
+
+/* Barra clickeable del sidebar */
+.sidebar-toggle-bar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: rgba(139, 115, 85, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1001;
+}
+
+.sidebar-toggle-bar:hover {
+  width: 12px;
+  background: rgba(139, 115, 85, 0.6);
+}
+
+.sidebar-toggle-bar i {
+  color: white;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-toggle-bar:hover i {
+  opacity: 1;
 }
 
 /* Botón hamburguesa para móvil */
@@ -164,6 +215,11 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.admin-main-wrapper.sidebar-collapsed {
+  margin-left: 70px;
 }
 
 /* Header */
@@ -441,10 +497,36 @@
   padding: 40px;
 }
 
-/* Estilos para tablas responsive */
+/* Estilos para tablas responsive con scroll horizontal */
 .ant-table-wrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Asegurar que las tablas tengan scroll horizontal */
+.ant-table {
+  min-width: 800px;
+}
+
+/* Estilo personalizado para el scrollbar */
+.ant-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.ant-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.ant-table-wrapper::-webkit-scrollbar-thumb {
+  background: #8B7355;
+  border-radius: 4px;
+}
+
+.ant-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #6d5a42;
 }
 
 @media (max-width: 768px) {
@@ -467,6 +549,20 @@
     font-size: 11px;
     height: auto;
   }
+  
+  /* Mejorar inputs y selects en tablets */
+  .ant-input,
+  .ant-select-selector {
+    font-size: 13px !important;
+  }
+  
+  .ant-space {
+    gap: 8px !important;
+  }
+  
+  .ant-space-item {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -482,6 +578,42 @@
   .ant-btn {
     padding: 3px 8px;
     font-size: 10px;
+  }
+  
+  /* Mejorar inputs, selects y botones en móviles */
+  .ant-input {
+    font-size: 14px !important;
+    padding: 8px 11px !important;
+    height: auto !important;
+  }
+  
+  .ant-select-selector {
+    font-size: 14px !important;
+    padding: 4px 11px !important;
+  }
+  
+  .ant-btn {
+    font-size: 12px !important;
+    padding: 8px 15px !important;
+    height: auto !important;
+    min-height: 36px;
+  }
+  
+  .ant-space {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px !important;
+  }
+  
+  .ant-space-item {
+    width: 100% !important;
+  }
+  
+  /* Input y Select en móviles ocupan todo el ancho */
+  .ant-input,
+  .ant-select {
+    width: 100% !important;
   }
   
   .ant-table-thead > tr > th {
@@ -528,6 +660,11 @@
     display: flex;
   }
   
+  /* Ocultar barra toggle en móvil */
+  .sidebar-toggle-bar {
+    display: none;
+  }
+  
   .sidebar-logo-text,
   .sidebar-item span,
   .sidebar-logout span {
@@ -546,6 +683,24 @@
   .admin-main-wrapper {
     margin-left: 0;
     width: 100%;
+  }
+  
+  .admin-main-wrapper.sidebar-collapsed {
+    margin-left: 0;
+  }
+  
+  /* Mejorar tablas en tablets */
+  .ant-table {
+    font-size: 13px;
+    min-width: 700px;
+  }
+  
+  .admin-content {
+    padding: 20px 15px;
+  }
+  
+  .filters-container {
+    padding: 15px;
   }
   
   .admin-header {
@@ -760,5 +915,48 @@
   .stat-card {
     flex-direction: column;
     text-align: center;
+  }
+  
+  /* Tablas en móviles muy pequeños */
+  .ant-table {
+    font-size: 11px;
+    min-width: 600px;
+  }
+  
+  .ant-table-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Estilos adicionales para mejorar el scroll horizontal en todas las pantallas */
+@media (max-width: 1024px) {
+  .ant-table-content {
+    overflow-x: auto;
+  }
+  
+  .admin-content > div {
+    overflow-x: hidden;
+  }
+}
+
+/* Mejorar visibilidad del scroll en móviles */
+@media (max-width: 768px) {
+  .ant-table-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: #8B7355 #f1f1f1;
+  }
+  
+  /* Indicador visual de scroll horizontal */
+  .ant-table-wrapper::before {
+    content: '← Desliza para ver más →';
+    display: block;
+    text-align: center;
+    font-size: 11px;
+    color: #8B7355;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px 4px 0 0;
+    font-weight: 500;
   }
 }

@@ -869,6 +869,45 @@
   border-radius: 10px;
 }
 
+/* Botón de bloqueo de fecha */
+.fecha-bloqueo-btn-pv {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 2;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.fecha-bloqueo-btn-pv:hover {
+  background: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.fecha-bloqueo-btn-pv.bloqueada {
+  background: rgba(40, 167, 69, 0.9);
+}
+
+.fecha-bloqueo-btn-pv.bloqueada:hover {
+  background: rgba(40, 167, 69, 1);
+}
+
+.fecha-card-pv:hover .fecha-bloqueo-btn-pv {
+  opacity: 1;
+}
+
 /* Responsive para las tarjetas de fechas */
 @media (max-width: 768px) {
   .fechas-pagination-container-pv {

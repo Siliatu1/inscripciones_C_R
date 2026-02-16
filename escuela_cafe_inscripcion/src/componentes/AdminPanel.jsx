@@ -3,6 +3,9 @@ import "./admin_panel.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import FormularioInscripcion from "./FormularioInscripcion";
 import FormularioPuntoVenta from "./FormularioPuntoVenta";
+import SeleccionMenu from "./SeleccionMenu";
+import EvaluacionTodera from "./EvaluacionTodera";
+import ProfileCard from "./ProfileCard";
 import { Table, Input, Button, Space, message, Popconfirm, Select } from "antd";
 import { SearchOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
@@ -10,6 +13,7 @@ import * as XLSX from 'xlsx';
 const AdminPanel = ({ userData, onLogout }) => {
   const [showFormulario, setShowFormulario] = useState(false);
   const [tipoFormulario, setTipoFormulario] = useState(""); 
+  const [vistaActual, setVistaActual] = useState("panel"); 
   const [inscripciones, setInscripciones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -18,6 +22,7 @@ const AdminPanel = ({ userData, onLogout }) => {
   });
   const [dataFiltrada, setDataFiltrada] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
 
   const nombreUsuario = userData?.data?.nombre || 
@@ -96,7 +101,8 @@ const AdminPanel = ({ userData, onLogout }) => {
               dia: item.attributes?.fecha || '',
               coordinadora: item.attributes?.coordinadora || '',
               nombreLider: item.attributes?.lider || '',
-              tipoFormulario: item.attributes?.tipo_formulario || ''
+              tipoFormulario: item.attributes?.tipo_formulario || '',
+              asistencia: item.attributes?.confirmado ?? null
             };
             return mapped;
           });
@@ -151,10 +157,10 @@ const AdminPanel = ({ userData, onLogout }) => {
 
 
   useEffect(() => {
-    if (!showFormulario) {
+    if (vistaActual === "panel") {
       cargarInscripciones();
     }
-  }, [showFormulario]);
+  }, [vistaActual]);
 
   const handleRegistrarPersona = () => {
    
@@ -165,28 +171,41 @@ const AdminPanel = ({ userData, onLogout }) => {
     if (rolesHeladeria.includes(cargoUsuario)) {
 
       setTipoFormulario("heladeria");
+      setVistaActual("formulario");
       setShowFormulario(true);
     } else if (rolesPuntoVenta.includes(cargoUsuario)) {
 
-      setTipoFormulario("punto_venta");
-      setShowFormulario(true);
+      setVistaActual("seleccion_menu");
     } else {
 
 
       setTipoFormulario("heladeria");
+      setVistaActual("formulario");
       setShowFormulario(true);
     }
   };
 
   const handleAbrirFormularioPuntoVenta = () => {
     setTipoFormulario("punto_venta");
+    setVistaActual("formulario");
     setShowFormulario(true);
   };
 
 
   const handleAbrirFormularioEscuelaCafe = () => {
     setTipoFormulario("heladeria");
+    setVistaActual("formulario");
     setShowFormulario(true);
+  };
+
+  const handleAbrirFormularioEvaluacionTodera = () => {
+    setTipoFormulario("evaluacion_todera");
+    setVistaActual("formulario");
+    setShowFormulario(true);
+  };
+
+  const handleVolverDesdeSeleccion = () => {
+    setVistaActual("panel");
   };
 
 
@@ -198,6 +217,7 @@ const AdminPanel = ({ userData, onLogout }) => {
   const handleVolverPanel = () => {
     setShowFormulario(false);
     setTipoFormulario("");
+    setVistaActual("panel");
   };
 
   const handleSubmitInscripcion = (data) => {
@@ -207,6 +227,7 @@ const AdminPanel = ({ userData, onLogout }) => {
     if (data && data.success) {
 
       setShowFormulario(false);
+      setVistaActual("panel");
 
       setTimeout(() => {
         cargarInscripciones();
@@ -339,6 +360,21 @@ const AdminPanel = ({ userData, onLogout }) => {
       }
     },
     {
+      title: 'Asistencia',
+      dataIndex: 'asistencia',
+      key: 'asistencia',
+      width: 120,
+      render: (asistencia) => {
+        if (asistencia === null) {
+          return <span style={{ color: '#a8a26a' }}>Pendiente</span>;
+        } else if (asistencia === true) {
+          return <span style={{ color: '#52c41a', fontWeight: 'bold' }}>✓ Asistió</span>;
+        } else {
+          return <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>✗ No asistió</span>;
+        }
+      }
+    },
+    {
       title: 'Acciones',
       key: 'acciones',
       width: 100,
@@ -367,12 +403,30 @@ const AdminPanel = ({ userData, onLogout }) => {
     }
   ];
 
- 
-  if (showFormulario) {
 
+  if (vistaActual === "seleccion_menu") {
+    return (
+      <SeleccionMenu
+        onSelectEscuelaCafe={handleAbrirFormularioPuntoVenta}
+        onSelectEvaluacionToderas={handleAbrirFormularioEvaluacionTodera}
+        onBack={handleVolverDesdeSeleccion}
+        nombreUsuario={nombreUsuario}
+      />
+    );
+  }
+
+  if (vistaActual === "formulario" && showFormulario) {
     if (tipoFormulario === "punto_venta") {
       return (
         <FormularioPuntoVenta 
+          onBack={handleVolverPanel}
+          onSubmit={handleSubmitInscripcion}
+          coordinadoraData={userData}
+        />
+      );
+    } else if (tipoFormulario === "evaluacion_todera") {
+      return (
+        <EvaluacionTodera 
           onBack={handleVolverPanel}
           onSubmit={handleSubmitInscripcion}
           coordinadoraData={userData}
@@ -398,6 +452,10 @@ const AdminPanel = ({ userData, onLogout }) => {
     setSidebarOpen(false);
   };
 
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
   return (
     <div className="admin-container">
       <button className="mobile-menu-toggle" onClick={toggleSidebar}>
@@ -410,7 +468,16 @@ const AdminPanel = ({ userData, onLogout }) => {
       ></div>
 
       {/* Sidebar Lateral */}
-      <aside className={`admin-sidebar ${sidebarOpen ? 'active' : ''}`}>
+      <aside className={`admin-sidebar ${sidebarOpen ? 'active' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
+        
+        {/* Barra clickeable para colapsar sidebar */}
+        <div 
+          className="sidebar-toggle-bar" 
+          onClick={toggleSidebarCollapse} 
+          title={sidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+        >
+          <i className={`bi ${sidebarCollapsed ? 'bi-chevron-double-right' : 'bi-chevron-double-left'}`}></i>
+        </div>
         
         <nav className="sidebar-nav">
           <a href="#" className="sidebar-item active" onClick={closeSidebar}>
@@ -445,8 +512,11 @@ const AdminPanel = ({ userData, onLogout }) => {
         </div>
       </aside>
 
+      {/* Perfil del Usuario */}
+      <ProfileCard userData={userData} />
+
       {/* Contenido Principal */}
-      <div className="admin-main-wrapper">
+      <div className={`admin-main-wrapper ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
 
 
         {/* Main Content */}
@@ -500,7 +570,7 @@ const AdminPanel = ({ userData, onLogout }) => {
           </div>
 
           {/* Tabla de inscripciones */}
-          <div style={{ background: '#fff', borderRadius: '8px', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '8px', padding: '20px', overflowX: 'auto' }}>
             <div style={{ marginBottom: '10px' }}>
               <strong></strong> Registros cargados: {inscripciones.length}, Filtrados: {dataFiltrada.length}
             </div>
@@ -514,7 +584,7 @@ const AdminPanel = ({ userData, onLogout }) => {
                 showSizeChanger: true,
                 showTotal: (total) => `Total ${total} inscripciones`
               }}
-              scroll={{ x: 1000 }}
+              scroll={{ x: 1500 }}
               locale={{
                 emptyText: 'No hay inscripciones registradas'
               }}

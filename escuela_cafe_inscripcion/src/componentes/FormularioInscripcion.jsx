@@ -15,9 +15,21 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
   const [festivosColombianos, setFestivosColombianos] = useState([]);
   const [inscripcionesPorFecha, setInscripcionesPorFecha] = useState({});
   const [mostrarInfoEmpleado, setMostrarInfoEmpleado] = useState(true);
+  const [fechasBloqueadas, setFechasBloqueadas] = useState([]);
   
   const cargoCoordinadora = coordinadoraData?.data?.cargo_general || coordinadoraData?.data?.position || "";
   const puntoVentaCoordinadora = coordinadoraData?.data?.area_nombre || "";
+  
+  // Roles que pueden bloquear fechas
+  const rolesBloqueoFechas = [
+    'ANALISTA EVENTOS Y HELADERIAS',
+    'JEFE OPERATIVO DE MERCADEO',
+    'JEFE DESARROLLO DE PRODUCTO',
+    'DIRECTORA DE LINEAS DE PRODUCTO',
+    'ANALISTA DE PRODUCTO'
+  ];
+  
+  const puedeBloquearFechas = rolesBloqueoFechas.includes(cargoCoordinadora);
   
  
   const nombreLider = coordinadoraData?.data?.nombre || 
@@ -81,25 +93,50 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     cargarInscripciones();
   }, []);
 
+  // Cargar fechas bloqueadas
+  useEffect(() => {
+    const cargarFechasBloqueadas = async () => {
+      try {
+        const response = await fetch('https://macfer.crepesywaffles.com/api/cap-cafe-fechas');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data && Array.isArray(result.data)) {
+            const fechas = result.data.map(item => item.attributes?.fecha).filter(Boolean);
+            setFechasBloqueadas(fechas);
+            console.log("Fechas bloqueadas:", fechas);
+          }
+        }
+      } catch (error) {
+        console.error("Error al cargar fechas bloqueadas:", error);
+      }
+    };
+    cargarFechasBloqueadas();
+  }, []);
 
-  const obtenerMesAMostrar = () => {
+
+  const obtenerMesesAMostrar = () => {
     const hoy = new Date();
     const diaActual = hoy.getDate();
     const mesActual = hoy.getMonth(); // 0-11
     const yearActual = hoy.getFullYear();
 
- 
+    const meses = [];
+    
     if (diaActual >= 15) {
-
+      // Del 15 en adelante: Mostrar mes actual Y el siguiente
+      meses.push({ year: yearActual, month: mesActual });
+      
       if (mesActual === 11) { 
-        return { year: yearActual + 1, month: 0 };
+        meses.push({ year: yearActual + 1, month: 0 });
       } else {
-        return { year: yearActual, month: mesActual + 1 };
+        meses.push({ year: yearActual, month: mesActual + 1 });
       }
     } else {
-
-      return { year: yearActual, month: mesActual };
+      // Del 1 al 14: Mostrar solo el mes actual
+      meses.push({ year: yearActual, month: mesActual });
     }
+    
+    return meses;
   };
 
   const obtenerLunesYViernes = (year, month) => {
@@ -122,19 +159,21 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
         // Formatear fecha como YYYY-MM-DD sin conversiones UTC
         const fechaStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
         
-        // Verificar si es festivo
+        // Verificar si es festivo o está bloqueada
         const esFestivo = festivosColombianos.includes(fechaStr);
+        const estaBloqueada = fechasBloqueadas.includes(fechaStr);
         
 
         const numInscripciones = inscripcionesPorFecha[fechaStr] || 0;
-        const disponible = numInscripciones < 3 && !esFestivo;
+        const disponible = numInscripciones < 3 && !esFestivo && !estaBloqueada;
         
         fechas.push({
           fecha: fechaStr,
           texto: `${diasSemana[diaSemana]} ${dia} de ${meses[month]}`,
           disponible: disponible,
           inscripciones: numInscripciones,
-          esFestivo: esFestivo
+          esFestivo: esFestivo,
+          estaBloqueada: estaBloqueada
         });
       }
     }
@@ -145,19 +184,37 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
 
   useEffect(() => {
     if (festivosColombianos.length > 0) {
-      const { year, month } = obtenerMesAMostrar();
-      const fechas = obtenerLunesYViernes(year, month);
-      setFechasDisponibles(fechas);
-      setFechaInscripcion(""); 
-      setPaginaActual(0);
+      const periodosAMostrar = obtenerMesesAMostrar();
+      const todasLasFechas = [];
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
       
       const meses = [
         "enero", "febrero", "marzo", "abril", "mayo", "junio",
         "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
       ];
-      console.log(`Mostrando fechas de ${meses[month]} ${year}`);
+      
+      periodosAMostrar.forEach(({ year, month }) => {
+        const fechasMes = obtenerLunesYViernes(year, month);
+        // Filtrar fechas pasadas
+        const fechasFuturas = fechasMes.filter(f => {
+          const fechaObj = new Date(f.fecha + 'T00:00:00');
+          return fechaObj >= hoy;
+        });
+        todasLasFechas.push(...fechasFuturas);
+      });
+      
+      setFechasDisponibles(todasLasFechas);
+      setFechaInscripcion(""); 
+      setPaginaActual(0);
+      
+      if (periodosAMostrar.length === 1) {
+        console.log(`Mostrando fechas de ${meses[periodosAMostrar[0].month]} ${periodosAMostrar[0].year}`);
+      } else {
+        console.log(`Mostrando fechas de ${meses[periodosAMostrar[0].month]} y ${meses[periodosAMostrar[1].month]}`);
+      }
     }
-  }, [festivosColombianos, inscripcionesPorFecha]);
+  }, [festivosColombianos, inscripcionesPorFecha, fechasBloqueadas]);
 
 
   const buscarEmpleado = async () => {
@@ -267,6 +324,65 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       buscarEmpleado();
+    }
+  };
+
+  // Función para bloquear/desbloquear fecha
+  const handleBloquearFecha = async (fecha, estaBloqueada) => {
+    const confirmar = window.confirm(
+      estaBloqueada 
+        ? `¿Está seguro de desbloquear la fecha ${fecha}?`
+        : `¿Está seguro de bloquear la fecha ${fecha}?`
+    );
+    
+    if (!confirmar) return;
+
+    try {
+      if (estaBloqueada) {
+        // Desbloquear: buscar y eliminar el registro
+        const response = await fetch('https://macfer.crepesywaffles.com/api/cap-cafe-fechas');
+        if (response.ok) {
+          const result = await response.json();
+          const registro = result.data?.find(item => item.attributes?.fecha === fecha);
+          
+          if (registro) {
+            const deleteResponse = await fetch(`https://macfer.crepesywaffles.com/api/cap-cafe-fechas/${registro.id}`, {
+              method: 'DELETE'
+            });
+            
+            if (deleteResponse.ok) {
+              message.success('Fecha desbloqueada exitosamente');
+              setFechasBloqueadas(prev => prev.filter(f => f !== fecha));
+            } else {
+              message.error('Error al desbloquear la fecha');
+            }
+          }
+        }
+      } else {
+        // Bloquear: crear nuevo registro
+        const response = await fetch('https://macfer.crepesywaffles.com/api/cap-cafe-fechas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            data: {
+              fecha: fecha,
+              bloqueadoPor: nombreLider
+            }
+          })
+        });
+
+        if (response.ok) {
+          message.success('Fecha bloqueada exitosamente');
+          setFechasBloqueadas(prev => [...prev, fecha]);
+        } else {
+          message.error('Error al bloquear la fecha');
+        }
+      }
+    } catch (error) {
+      console.error('Error al bloquear/desbloquear fecha:', error);
+      message.error('Error de conexión');
     }
   };
 
@@ -529,12 +645,16 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
               <label className="form-label">FECHA DE INSCRIPCIÓN *</label>
               <div className="mes-info">
                 Fechas disponibles de {(() => {
-                  const { year, month } = obtenerMesAMostrar();
+                  const periodosAMostrar = obtenerMesesAMostrar();
                   const meses = [
                     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
                   ];
-                  return `${meses[month]} ${year}`;
+                  if (periodosAMostrar.length === 1) {
+                    return `${meses[periodosAMostrar[0].month]} ${periodosAMostrar[0].year}`;
+                  } else {
+                    return `${meses[periodosAMostrar[0].month]} y ${meses[periodosAMostrar[1].month]}`;
+                  }
                 })()}
               </div>
               
@@ -561,12 +681,15 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
                           } else if (fecha.esFestivo) {
                             setMensaje({ texto: "Esta fecha es un día festivo y no está disponible", tipo: "error" });
                             setTimeout(() => setMensaje({ texto: "", tipo: "" }), 3000);
+                          } else if (fecha.estaBloqueada) {
+                            setMensaje({ texto: "Esta fecha está bloqueada por el administrador", tipo: "error" });
+                            setTimeout(() => setMensaje({ texto: "", tipo: "" }), 3000);
                           } else {
                             setMensaje({ texto: "Esta fecha ya tiene el máximo de inscripciones (3)", tipo: "error" });
                             setTimeout(() => setMensaje({ texto: "", tipo: "" }), 3000);
                           }
                         }}
-                        title={!fecha.disponible ? (fecha.esFestivo ? 'Día festivo' : `Inscripciones: ${fecha.inscripciones}/3`) : `Inscripciones: ${fecha.inscripciones}/3`}
+                        title={!fecha.disponible ? (fecha.esFestivo ? 'Día festivo' : fecha.estaBloqueada ? 'Fecha bloqueada' : `Inscripciones: ${fecha.inscripciones}/3`) : `Inscripciones: ${fecha.inscripciones}/3`}
                       >
                         <div className="fecha-dia">
                           {parseInt(fecha.fecha.split('-')[2])}
@@ -579,13 +702,26 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
                         </div>
                         {!fecha.disponible && (
                           <div className="fecha-no-disponible-label">
-                            {fecha.esFestivo ? 'FESTIVO' : 'COMPLETO'}
+                            {fecha.esFestivo ? 'FESTIVO' : fecha.estaBloqueada ? 'BLOQUEADA' : 'COMPLETO'}
                           </div>
                         )}
                         {fecha.disponible && fecha.inscripciones > 0 && (
                           <div className="fecha-contador">
                             {fecha.inscripciones}/3
                           </div>
+                        )}
+                        {puedeBloquearFechas && (
+                          <button
+                            type="button"
+                            className={`fecha-bloqueo-btn ${fecha.estaBloqueada ? 'bloqueada' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBloquearFecha(fecha.fecha, fecha.estaBloqueada);
+                            }}
+                            title={fecha.estaBloqueada ? 'Desbloquear fecha' : 'Bloquear fecha'}
+                          >
+                            <i className={`bi ${fecha.estaBloqueada ? 'bi-unlock-fill' : 'bi-lock-fill'}`}></i>
+                          </button>
                         )}
                       </div>
                     ))}
