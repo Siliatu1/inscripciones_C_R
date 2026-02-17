@@ -9,6 +9,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
   const [empleado, setEmpleado] = useState(null);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
   const [categoria, setCategoria] = useState("");
+  const [mostrarModal, setMostrarModal] = useState(false);
   
   const cargoCoordinadora = coordinadoraData?.data?.cargo_general || coordinadoraData?.data?.position || "";
   const puntoVentaCoordinadora = coordinadoraData?.data?.area_nombre || "";
@@ -86,7 +87,6 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
     } catch (error) {
       setEmpleado(null);
       setMensaje({ texto: "Error de conexión con la API", tipo: "error" });
-      console.error("Error:", error);
     } finally {
       setLoading(false);
     }
@@ -98,6 +98,22 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const limpiarFormulario = () => {
+    setDocumento("");
+    setEmpleado(null);
+    setCategoria("");
+    setFormData({
+      fotoBuk: "",
+      nombres: "",
+      telefono: "",
+      cargo: cargoCoordinadora,
+      puntoVenta: puntoVentaCoordinadora,
+      nombreLider: nombreLider
+    });
+    setMensaje({ texto: "", tipo: "" });
+    setMostrarModal(false);
   };
 
   const handleSubmit = async (e) => {
@@ -113,34 +129,25 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
       return;
     }
 
-    // Validar que tenemos todos los datos necesarios
-    console.log("=== DATOS DEL FORMULARIO ===");
-    console.log("Documento:", documento);
-    console.log("Nombre:", formData.nombres);
-    console.log("Teléfono:", formData.telefono);
-    console.log("Cargo:", formData.cargo);
-    console.log("Foto URL:", formData.fotoBuk);
-    console.log("PDV:", formData.puntoVenta);
-    console.log("Líder:", formData.nombreLider);
-    console.log("Categoría:", categoria);
-    console.log("===========================");
+    setMostrarModal(true);
+  };
 
+  const confirmarGuardado = async () => {
+    setMostrarModal(false);
+    
     const dataToSend = {
       data: {
-        documento: String(documento),
-        nombre: String(formData.nombres),
-        telefono: String(formData.telefono),
-        cargo: String(formData.cargo),
-        foto: String(formData.fotoBuk || ""),
-        pdv: String(formData.puntoVenta),
-        lider: String(formData.nombreLider),
-        categoria: String(categoria)
+        Nombre: formData.nombres || null,
+        documento: documento || null,
+        pdv: formData.puntoVenta || null,
+        lider: formData.nombreLider || null,
+        telefono: formData.telefono ? parseInt(formData.telefono) : null,
+        foto: formData.fotoBuk || null,
+        cargo: formData.cargo || null,
+        fecha: new Date().toISOString().split('T')[0],
+        categoria: categoria || null
       }
     };
-
-    console.log("=== DATOS A ENVIAR (JSON) ===");
-    console.log(JSON.stringify(dataToSend, null, 2));
-    console.log("============================");
 
     try {
       const response = await fetch('https://macfer.crepesywaffles.com/api/cap-toderas', {
@@ -151,62 +158,31 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
         body: JSON.stringify(dataToSend)
       });
 
-      console.log("=== RESPUESTA DEL SERVIDOR ===");
-      console.log("Status:", response.status);
-      console.log("Status Text:", response.statusText);
-      console.log("==============================");
-
       if (response.ok) {
         const result = await response.json();
-        console.log("=== RESPUESTA EXITOSA ===");
-        console.log(result);
-        console.log("========================");
-        message.success('¡Evaluación registrada exitosamente!');
-    
-        // Limpiar formulario
-        setDocumento("");
-        setEmpleado(null);
-        setCategoria("");
-        setFormData({
-          fotoBuk: "",
-          nombres: "",
-          telefono: "",
-          cargo: cargoCoordinadora,
-          puntoVenta: puntoVentaCoordinadora,
-          nombreLider: nombreLider
-        });
-        setMensaje({ texto: "", tipo: "" });
+        message.success("✓ Evaluación registrada con éxito");
+        limpiarFormulario();
 
         if (onSubmit) {
           onSubmit({ success: true, data: result });
         }
       } else {
         const errorText = await response.text();
-        console.error("=== ERROR DEL SERVIDOR ===");
-        console.error("Status:", response.status);
-        console.error("Response Text:", errorText);
-        console.error("=========================");
+ 
         
         try {
           const errorData = JSON.parse(errorText);
-          console.error("Error parseado:", errorData);
           if (errorData.error && errorData.error.message) {
             message.error(`Error: ${errorData.error.message}`);
           } else {
             message.error(`Error al registrar la evaluación (${response.status})`);
           }
         } catch (e) {
-          console.error("No se pudo parsear el error como JSON");
           message.error(`Error al registrar la evaluación (${response.status})`);
         }
       }
     } catch (error) {
-      console.error("=== ERROR DE RED ===");
-      console.error("Error completo:", error);
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
-      console.error("===================");
-      message.error('Error de conexión al enviar la evaluación');
+
     }
   };
 
@@ -220,11 +196,18 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
 
       </div>
 
+      {/* Alerta importante */}
+      <div className="alerta-evaluacion">
+        <i className="bi bi-exclamation-triangle-fill"></i>
+        <span>ALERTA:
+           SOLO SE PUEDE INSCRIBIR SI YA ESTÁ 100% LISTA PARA LA EVALUACIÓN</span>
+      </div>
+
       <div className="form-container-et">
         <form onSubmit={handleSubmit} className="evaluacion-form-et">
           {/* Búsqueda de empleado */}
           <div className="form-section-et">
-            <label className="form-label-et">NÚMERO DE DOCUMENTO *</label>
+            <label className="form-label-et">NÚMERO DE DOCUMENTO </label>
             <div className="search-container-et">
               <input
                 type="text"
@@ -314,7 +297,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
                   <option value="">Seleccione una categoría</option>
                   <option value="sal">Sal</option>
                   <option value="dulce">Dulce</option>
-                  <option value="bebidas">Bebidas y Postres</option>
+                  <option value="bebidas">Bebidas</option>
                 </select>
               </div>
 
@@ -323,20 +306,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
                 <button
                   type="button"
                   className="cancel-button-et"
-                  onClick={() => {
-                    setEmpleado(null);
-                    setDocumento("");
-                    setCategoria("");
-                    setFormData({
-                      fotoBuk: "",
-                      nombres: "",
-                      telefono: "",
-                      cargo: cargoCoordinadora,
-                      puntoVenta: puntoVentaCoordinadora,
-                      nombreLider: nombreLider
-                    });
-                    setMensaje({ texto: "", tipo: "" });
-                  }}
+                  onClick={limpiarFormulario}
                 >
                   Limpiar
                 </button>
@@ -348,6 +318,35 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
           )}
         </form>
       </div>
+
+      {/* Modal de confirmación */}
+      {mostrarModal && (
+        <div className="modal-overlay-confirmacion">
+          <div className="modal-confirmacion">
+            <div className="modal-confirmacion-header">
+              <i className="bi bi-exclamation-triangle-fill"></i>
+              <h2>ADVERTENCIA</h2>
+            </div>
+            <div className="modal-confirmacion-body">
+              <p>LA PERSONA INSCRITA DEBE ASISTIR OBLIGATORIAMENTE</p>
+            </div>
+            <div className="modal-confirmacion-footer">
+              <button 
+                className="btn-modal-cancelar"
+                onClick={limpiarFormulario}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-modal-guardar"
+                onClick={confirmarGuardado}
+              >
+                Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -46,7 +46,7 @@ const ProfileCard = ({ userData }) => {
           if (empleadoData) {
             setEmpleadoInfo(empleadoData);
           } else {
-            // Si no se encuentra en la API empleados3, usar los datos básicos de userData
+
             setEmpleadoInfo({
               foto: userData?.data?.foto || userData?.data?.picture || '',
               nombre: userData?.data?.nombre || userData?.data?.name || 
@@ -60,8 +60,8 @@ const ProfileCard = ({ userData }) => {
           }
         }
       } catch (error) {
-        console.error("Error al cargar datos del empleado:", error);
-        // Usar datos básicos de userData como fallback
+
+
         setEmpleadoInfo({
           foto: userData?.data?.foto || userData?.data?.picture || '',
           nombre: userData?.data?.nombre || userData?.data?.name || 

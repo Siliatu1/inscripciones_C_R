@@ -142,12 +142,12 @@ const AdminPanel = ({ userData, onLogout }) => {
         setInscripciones(dataFiltradaPorRol);
         setDataFiltrada(dataFiltradaPorRol);
       } else {
-        console.error('Error al cargar inscripciones:', response.status);
+
         setInscripciones([]);
         setDataFiltrada([]);
       }
     } catch (error) {
-      console.error("Error al cargar inscripciones:", error);
+
       setInscripciones([]);
       setDataFiltrada([]);
     } finally {
@@ -279,6 +279,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       'Cargo': item.cargo || '',
       'Punto de Venta': item.puntoVenta || '',
       'Nombre Líder': item.nombreLider || '',
+      'Asistencia': item.asistencia === null ? 'Pendiente' : (item.asistencia ? 'Asistió' : 'No asistió'),
       'Día': item.dia || '',
       
     }));
@@ -304,12 +305,12 @@ const AdminPanel = ({ userData, onLogout }) => {
         message.error('Error al eliminar la inscripción');
       }
     } catch (error) {
-      console.error('Error al eliminar:', error);
+
       message.error('Error de conexión al eliminar');
     }
   };
 
-  // Configuración de columnas de la tabla
+
   const columns = [
     {
       title: 'Cédula',
@@ -489,11 +490,11 @@ const AdminPanel = ({ userData, onLogout }) => {
             <>
               <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioEscuelaCafe(); closeSidebar(); }}>
                 <i className="bi bi-cup-hot-fill"></i>
-                <span>Inscripción Escuela del Café</span>
+                <span>Inscripción Escuela del Café HEL</span>
               </a>
               <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioPuntoVenta(); closeSidebar(); }}>
                 <i className="bi bi-shop"></i>
-                <span>Inscripción Punto de Venta</span>
+                <span>Inscripción Escuela del Café PDV</span>
               </a>
             </>
           ) : (

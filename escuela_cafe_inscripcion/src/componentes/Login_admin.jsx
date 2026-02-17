@@ -20,16 +20,13 @@ const Login_admin = () => {
     setMensaje({ texto: "", tipo: "" });
     
     try {
-      console.log(`Intentando validar documento: ${documento}`);
       const response = await fetch(
         `https://apialohav2.crepesywaffles.com/buk/empleados2/${documento}`
       );
 
-      console.log(`Respuesta del servidor: Status ${response.status}`);
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Datos recibidos:", data);
         setMensaje({ texto: "Documento validado correctamente", tipo: "success" });
 
 
@@ -40,14 +37,12 @@ const Login_admin = () => {
         
       } else {
         const errorText = await response.text();
-        console.error(`Error del servidor: Status ${response.status}, Respuesta:`, errorText);
         setMensaje({ 
           texto: `Documento no autorizado (Error ${response.status})`, 
           tipo: "error" 
         });
       }
     } catch (error) {
-      console.error("Error al validar el documento:", error);
       setMensaje({ texto: "Error de conexión al validar el documento", tipo: "error" });
     } finally {
       setLoading(false);
@@ -88,7 +83,7 @@ const Login_admin = () => {
       
       <div className="login-card">
         
-        <p className="login-subtitle">ESCUELA DEL CAFÉ</p>
+        <p className="login-subtitle">PORTAL LINEAS DE PRODUCTO C&W </p>
         
         <div className="login-form">
           <label className="login-label">NÚMERO DE DOCUMENTO</label>

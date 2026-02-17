@@ -16,6 +16,7 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
   const [inscripcionesPorFecha, setInscripcionesPorFecha] = useState({});
   const [mostrarInfoEmpleado, setMostrarInfoEmpleado] = useState(true);
   const [fechasBloqueadas, setFechasBloqueadas] = useState([]);
+  const [mostrarModal, setMostrarModal] = useState(false);
   
   const cargoCoordinadora = coordinadoraData?.data?.cargo_general || coordinadoraData?.data?.position || "";
   const puntoVentaCoordinadora = coordinadoraData?.data?.area_nombre || "";
@@ -58,10 +59,8 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
 
           const fechasFestivos = festivos.map(f => f.date);
           setFestivosColombianos(fechasFestivos);
-          console.log("Festivos colombianos cargados:", fechasFestivos);
         }
       } catch (error) {
-        console.error("Error al cargar festivos:", error);
       }
     };
     cargarFestivos();
@@ -84,16 +83,14 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
             });
           }
           setInscripcionesPorFecha(conteo);
-          console.log("Inscripciones por fecha:", conteo);
         }
       } catch (error) {
-        console.error("Error al cargar inscripciones:", error);
       }
     };
     cargarInscripciones();
   }, []);
 
-  // Cargar fechas bloqueadas
+
   useEffect(() => {
     const cargarFechasBloqueadas = async () => {
       try {
@@ -103,11 +100,9 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
           if (result.data && Array.isArray(result.data)) {
             const fechas = result.data.map(item => item.attributes?.fecha).filter(Boolean);
             setFechasBloqueadas(fechas);
-            console.log("Fechas bloqueadas:", fechas);
           }
         }
       } catch (error) {
-        console.error("Error al cargar fechas bloqueadas:", error);
       }
     };
     cargarFechasBloqueadas();
@@ -207,12 +202,6 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
       setFechasDisponibles(todasLasFechas);
       setFechaInscripcion(""); 
       setPaginaActual(0);
-      
-      if (periodosAMostrar.length === 1) {
-        console.log(`Mostrando fechas de ${meses[periodosAMostrar[0].month]} ${periodosAMostrar[0].year}`);
-      } else {
-        console.log(`Mostrando fechas de ${meses[periodosAMostrar[0].month]} y ${meses[periodosAMostrar[1].month]}`);
-      }
     }
   }, [festivosColombianos, inscripcionesPorFecha, fechasBloqueadas]);
 
@@ -283,7 +272,6 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     } catch (error) {
       setEmpleado(null);
       setMensaje({ texto: "Error de conexión con la API", tipo: "error" });
-      console.error("Error:", error);
     } finally {
       setLoading(false);
     }
@@ -327,7 +315,6 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     }
   };
 
-  // Función para bloquear/desbloquear fecha
   const handleBloquearFecha = async (fecha, estaBloqueada) => {
     const confirmar = window.confirm(
       estaBloqueada 
@@ -339,7 +326,7 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
 
     try {
       if (estaBloqueada) {
-        // Desbloquear: buscar y eliminar el registro
+
         const response = await fetch('https://macfer.crepesywaffles.com/api/cap-cafe-fechas');
         if (response.ok) {
           const result = await response.json();
@@ -359,7 +346,7 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
           }
         }
       } else {
-        // Bloquear: crear nuevo registro
+
         const response = await fetch('https://macfer.crepesywaffles.com/api/cap-cafe-fechas', {
           method: 'POST',
           headers: {
@@ -381,9 +368,24 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
         }
       }
     } catch (error) {
-      console.error('Error al bloquear/desbloquear fecha:', error);
       message.error('Error de conexión');
     }
+  };
+
+  const limpiarFormulario = () => {
+    setDocumento("");
+    setEmpleado(null);
+    setFechaInscripcion("");
+    setFormData({
+      fotoBuk: "",
+      nombres: "",
+      telefono: "",
+      cargo: cargoCoordinadora,
+      puntoVenta: puntoVentaCoordinadora,
+      nombreLider: nombreLider
+    });
+    setMensaje({ texto: "", tipo: "" });
+    setMostrarModal(false);
   };
 
   const handleSubmit = async (e) => {
@@ -415,31 +417,25 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
         if (yaInscrito) {
           message.warning('⚠️ Este documento ya está inscrito para la fecha seleccionada. Por favor elija otra fecha.', 5);
           
-
-          setDocumento("");
-          setEmpleado(null);
-          setFechaInscripcion("");
-          setFormData({
-            fotoBuk: "",
-            nombres: "",
-            telefono: "",
-            cargo: cargoCoordinadora,
-            puntoVenta: puntoVentaCoordinadora
-          });
-          setMensaje({ texto: "", tipo: "" });
+          limpiarFormulario();
           
           setLoading(false);
           return;
         }
       }
     } catch (error) {
-      console.error("Error al verificar inscripciones:", error);
     }
     
+    setLoading(false);
+
+    setMostrarModal(true);
+  };
+
+  const confirmarGuardado = async () => {
+    setMostrarModal(false);
     setLoading(true);
     
     try {
-      console.log('Nombre del líder a guardar:', formData.nombreLider);
       
       const dataToSend = {
         data: {
@@ -454,8 +450,6 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
         }
       };
 
-      console.log('Datos a enviar:', dataToSend);
-
 
       const response = await fetch('https://macfer.crepesywaffles.com/api/cap-cafes', {
         method: 'POST',
@@ -467,8 +461,7 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log("Respuesta de la API:", result);
-        setMensaje({ texto: "✓ Inscripción guardada con éxito. Redirigiendo...", tipo: "success" });
+        message.success("✓ Inscripción guardada con éxito");
         
 
         setTimeout(() => {
@@ -482,7 +475,6 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
         setMensaje({ texto: `Error al guardar la inscripción: ${errorData.message || 'Error desconocido'}`, tipo: "error" });
       }
     } catch (error) {
-      console.error("Error al enviar datos:", error);
       setMensaje({ texto: "Error de conexión con el servidor", tipo: "error" });
     } finally {
       setLoading(false);
@@ -502,7 +494,7 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
 
       <div className="inscripcion-card">
 
-        <h1 className="inscripcion-subtitle">ESCUELA DEL CAFÉ</h1>
+        <h1 className="inscripcion-subtitle">ESCUELA DEL CAFÉ HELADERIA </h1>
 
         <form className="inscripcion-form" onSubmit={handleSubmit}>
           {/* Búsqueda por documento */}
@@ -748,21 +740,7 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
             <button
               type="button"
               className="cancel-button"
-              onClick={() => {
-                setEmpleado(null);
-                setDocumento("");
-                setFormData({
-                  fotoBuk: "",
-                  nombres: "",
-                  telefono: "",
-                  cargo: cargoCoordinadora,
-                  puntoVenta: puntoVentaCoordinadora,
-                  nombreLider: nombreLider
-                });
-                setFechaInscripcion("");
-                setMensaje({ texto: "", tipo: "" });
-                setPaginaActual(0);
-              }}
+              onClick={limpiarFormulario}
             >
               Limpiar
             </button>
@@ -772,6 +750,35 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
           </div>
         </form>
       </div>
+
+      {/* Modal de confirmación */}
+      {mostrarModal && (
+        <div className="modal-overlay-confirmacion">
+          <div className="modal-confirmacion">
+            <div className="modal-confirmacion-header">
+              <i className="bi bi-exclamation-triangle-fill"></i>
+              <h2>ADVERTENCIA</h2>
+            </div>
+            <div className="modal-confirmacion-body">
+              <p>LA PERSONA INSCRITA DEBE ASISTIR OBLIGATORIAMENTE</p>
+            </div>
+            <div className="modal-confirmacion-footer">
+              <button 
+                className="btn-modal-cancelar"
+                onClick={limpiarFormulario}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-modal-guardar"
+                onClick={confirmarGuardado}
+              >
+                Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -53,12 +53,10 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
         setInscripciones(dataArray);
         setDataFiltrada(dataArray);
       } else {
-        console.error('Error al cargar inscripciones:', response.status);
         setInscripciones([]);
         setDataFiltrada([]);
       }
     } catch (error) {
-      console.error("Error al cargar inscripciones:", error);
       setInscripciones([]);
       setDataFiltrada([]);
     } finally {
@@ -91,7 +89,6 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
         message.error('Error al actualizar la asistencia');
       }
     } catch (error) {
-      console.error('Error al actualizar asistencia:', error);
       message.error('Error de conexión al actualizar asistencia');
     }
   };
@@ -276,7 +273,7 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
         <main className="admin-main">
           <div className="admin-content">
             <h1 className="admin-title">HOLA, {nombreUsuario}</h1>
-            <h2 className="admin-subtitle">Control de asistencia - Escuela del Café</h2>
+            <h2 className="admin-subtitle">Este es el panel de control de asistencia Escuela del Café.</h2>
 
             {/* Filtros */}
             <div className="filters-container">
