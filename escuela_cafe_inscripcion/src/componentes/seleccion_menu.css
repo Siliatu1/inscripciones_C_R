@@ -1,6 +1,6 @@
 .seleccion-menu-container {
   min-height: 100vh;
-  background:linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
+  background: linear-gradient(135deg, #3d2817 0%, #5c4033 50%, #3d2817 100%);
   padding: 40px 20px;
   display: flex;
   flex-direction: column;
@@ -17,167 +17,187 @@
 }
 
 .back-button-sm {
-  position: absolute;
-  right: 0;
-  top: 0;
-  background: rgba(255, 255, 255, 0.2);
+  position: fixed;
+  right: 30px;
+  top: 30px;
+  background: transparent;
   color: white;
-  border: none;
-  padding: 14px 28px;
-  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 12px 24px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  letter-spacing: 1px;
+  z-index: 100;
 }
 
 .back-button-sm:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
   transform: translateX(5px);
 }
 
-.seleccion-menu-title {
-  color: white;
-  font-size: 2.5em;
-  margin: 20px 0 10px 0;
-  font-weight: 700;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+.welcome-text {
+  color: #d4a574;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  margin: 0 0 15px 0;
+  text-transform: uppercase;
 }
 
-.seleccion-menu-subtitle {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1.3em;
+.user-name {
+  color: white;
+  font-size: 3.5rem;
+  font-weight: 300;
+  margin: 10px 0 20px 0;
+  letter-spacing: 1px;
+}
+
+.subtitle-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
   font-weight: 400;
-  margin: 0;
+  margin: 0 0 30px 0;
+}
+
+.divider-line {
+  width: 100px;
+  height: 2px;
+  background: #d3ba9f;
+  margin: 0 auto;
+  border-radius: 2px;
 }
 
 .cards-container-sm {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-  gap: 50px;
+  gap: 40px;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1100px;
   padding: 0 40px;
   justify-content: center;
 }
 
 .menu-card-sm {
   background: white;
-  border-radius: 25px;
-  padding: 60px 45px;
-  cursor: pointer;
+  border-radius: 20px;
+  border-top: 4px solid transparent;
+  padding: 50px 40px;
+  cursor: default;
   transition: all 0.3s ease;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
   position: relative;
   overflow: hidden;
-  min-height: 400px;
-}
-
-.menu-card-sm::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 5px;
-  background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
-}
-
-.menu-card-sm:hover::before {
-  transform: scaleX(1);
-}
-
-.menu-card-sm:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+  min-height: 360px;
 }
 
 .menu-card-sm.escuela-cafe {
-  border-top: 4px solid #9cbf8b;
+  border-top-color: #9cbf8b;
 }
 
 .menu-card-sm.evaluacion-toderas {
-  border-top: 4px solid #e0a96d;
+  border-top-color: #e0a96d;
 }
 
-.card-icon-sm {
-  font-size: 5.5em;
-  margin-bottom: 30px;
-  background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.card-icon-wrapper {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 25px;
+  font-size: 2rem;
 }
 
-.menu-card-sm.escuela-cafe .card-icon-sm {
-  color: #9cbf8b;
-  background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.card-icon-wrapper.green-bg {
+  background: rgba(156, 191, 139, 0.15);
+  color: #6b8e5d;
 }
 
-.menu-card-sm.evaluacion-toderas .card-icon-sm {
-  color: #e0a96d;
-  background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.card-icon-wrapper.orange-bg {
+  background: rgba(224, 169, 109, 0.15);
+  color: #c08a4e;
 }
 
 .card-title-sm {
-  font-size: 2.2em;
+  font-size: 1.8rem;
   font-weight: 700;
-  color: #333;
-  margin: 15px 0;
-  text-align: center;
+  color: #2c2416;
+  margin: 0 0 15px 0;
+  text-align: left;
   width: 100%;
 }
 
 .card-description-sm {
-  font-size: 1.3em;
+  font-size: 1rem;
   color: #666;
-  margin: 15px 0 25px 0;
-  line-height: 1.6;
+  margin: 0 0 30px 0;
+  line-height: 1.7;
+  flex-grow: 1;
 }
 
-.card-arrow-sm {
-  font-size: 3em;
-  color: #8B7355;
-  margin-top: 20px;
+.btn-ingresar {
+  background: transparent;
+  color: #6b8e5d;
+  border: none;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  margin-top: auto;
+}
+
+.menu-card-sm.escuela-cafe .btn-ingresar {
+  color: #6b8e5d;
+}
+
+.menu-card-sm.evaluacion-toderas .btn-ingresar {
+  color: #c08a4e;
+}
+
+.btn-ingresar:hover {
+  gap: 12px;
+}
+
+.btn-ingresar i {
+  font-size: 1rem;
   transition: transform 0.3s ease;
 }
 
-.menu-card-sm:hover .card-arrow-sm {
-  transform: translateX(10px);
-}
-
-.menu-card-sm.escuela-cafe .card-arrow-sm {
-  color: #773c05;
-}
-
-.menu-card-sm.evaluacion-toderas .card-arrow-sm {
-  color:#773c05;
+.btn-ingresar:hover i {
+  transform: translateX(5px);
 }
 
 
 @media (max-width: 768px) {
-  .seleccion-menu-title {
-    font-size: 2em;
+  .user-name {
+    font-size: 2.5rem;
     margin-top: 50px;
   }
 
-  .seleccion-menu-subtitle {
-    font-size: 1.1em;
+  .welcome-text {
+    font-size: 0.8rem;
+  }
+
+  .subtitle-text {
+    font-size: 1rem;
   }
 
   .cards-container-sm {
@@ -188,7 +208,7 @@
 
   .menu-card-sm {
     padding: 40px 30px;
-    min-height: 350px;
+    min-height: 320px;
   }
 
   .back-button-sm {
@@ -196,6 +216,12 @@
     top: 20px;
     right: 20px;
     z-index: 100;
+    font-size: 12px;
+    padding: 10px 18px;
+  }
+
+  .card-title-sm {
+    font-size: 1.5rem;
   }
 }
 
@@ -204,16 +230,26 @@
     margin-bottom: 30px;
   }
 
-  .card-icon-sm {
-    font-size: 3em;
+  .user-name {
+    font-size: 2rem;
+  }
+
+  .card-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    font-size: 1.7rem;
   }
 
   .card-title-sm {
-    font-size: 1.5em;
+    font-size: 1.4rem;
   }
 
   .card-description-sm {
-    font-size: 1em;
+    font-size: 0.95rem;
+  }
+
+  .btn-ingresar {
+    font-size: 0.9rem;
   }
 }
 

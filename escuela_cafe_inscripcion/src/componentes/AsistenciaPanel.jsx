@@ -11,7 +11,8 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [filtros, setFiltros] = useState({
     cedula: '',
-    puntoVenta: ''
+    puntoVenta: '',
+    fecha: ''
   });
   const [dataFiltrada, setDataFiltrada] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -108,6 +109,12 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
       );
     }
 
+    if (filtros.fecha) {
+      dataTemp = dataTemp.filter(item => 
+        item.dia && item.dia === filtros.fecha
+      );
+    }
+
     setDataFiltrada(dataTemp);
   };
 
@@ -116,7 +123,7 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
   }, [filtros, inscripciones]);
 
   const limpiarFiltros = () => {
-    setFiltros({ cedula: '', puntoVenta: '' });
+    setFiltros({ cedula: '', puntoVenta: '', fecha: '' });
   };
 
   const exportarExcel = () => {
@@ -186,6 +193,12 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
       dataIndex: 'dia',
       key: 'dia',
       width: 120,
+      sorter: (a, b) => {
+        if (!a.dia) return 1;
+        if (!b.dia) return -1;
+        return a.dia.localeCompare(b.dia);
+      },
+      defaultSortOrder: 'descend',
       render: (text) => {
         if (!text) return '';
         const [year, month, day] = text.split('-');
@@ -302,6 +315,24 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
                     .map(pdv => (
                       <Select.Option key={pdv} value={pdv}>{pdv}</Select.Option>
                     ))}
+                </Select>
+                <Select
+                  placeholder="Filtrar por fecha"
+                  allowClear
+                  showSearch
+                  value={filtros.fecha || undefined}
+                  onChange={(value) => setFiltros({ ...filtros, fecha: value || '' })}
+                  style={{ width: 180 }}
+                >
+                  {[...new Set(inscripciones.map(item => item.dia).filter(Boolean))]
+                    .sort((a, b) => b.localeCompare(a))
+                    .map(fecha => {
+                      const [year, month, day] = fecha.split('-');
+                      const fechaFormateada = `${day}/${month}/${year}`;
+                      return (
+                        <Select.Option key={fecha} value={fecha}>{fechaFormateada}</Select.Option>
+                      );
+                    })}
                 </Select>
                 <Button onClick={limpiarFiltros}>
                   Limpiar

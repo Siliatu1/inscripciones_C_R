@@ -1,8 +1,8 @@
-/* Estilos para el componente ProfileCard compacto (versión derecha) */
+
 .profile-card-compact {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 30px;
+  right: 140px;
   z-index: 1000;
   transition: all 0.3s ease;
 }
@@ -18,8 +18,8 @@
 }
 
 .profile-photo-compact {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #9cbf8b;

@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./evaluacion_todera.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { message } from "antd";
+
+// Caché global de empleados
+const empleadosCache = {};
 
 const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
   const [documento, setDocumento] = useState("");
@@ -29,9 +32,27 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
     nombreLider: nombreLider
   });
 
-  const buscarEmpleado = async () => {
-    if (documento.trim().length < 6) {
+  const buscarEmpleado = async (docBusqueda = documento) => {
+    const docTrim = String(docBusqueda).trim();
+    
+    if (docTrim.length < 6) {
       setMensaje({ texto: "Por favor ingrese al menos 6 dígitos del documento", tipo: "error" });
+      return;
+    }
+
+    // Verificar caché primero
+    if (empleadosCache[docTrim]) {
+      const empleadoData = empleadosCache[docTrim];
+      setEmpleado(empleadoData);
+      setFormData({
+        fotoBuk: empleadoData.foto || "",
+        nombres: empleadoData.nombre || "",
+        telefono: empleadoData.Celular || "",
+        cargo: empleadoData.cargo || "",
+        puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora,
+        nombreLider: nombreLider
+      });
+      setMensaje({ texto: "✓ Empleado encontrado", tipo: "success" });
       return;
     }
 
@@ -40,49 +61,34 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
     
     try {
       const response = await fetch(
-        `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${documento}`,
-        {
-          headers: {
-            Accept: "application/json",
-            auth_token: "tmMC1o7cUovQvWoKhvbdhYxx",
-          },
-        }
+        `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${docTrim}`
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        let empleadoData = null;
+      if (!response.ok) throw new Error('Error');
+
+      const data = await response.json();
+      const empleados = data?.data || data;
+      const empleadoData = Array.isArray(empleados) 
+        ? empleados.find(emp => String(emp.document_number) === docTrim)
+        : null;
+      
+      if (empleadoData) {
+        // Guardar en caché
+        empleadosCache[docTrim] = empleadoData;
         
-        if (data && data.ok && Array.isArray(data.data) && data.data.length > 0) {
-          empleadoData = data.data.find(emp => emp.document_number == documento);
-        } else if (Array.isArray(data) && data.length > 0) {
-          empleadoData = data.find(emp => emp.document_number == documento);
-        }
-        
-        if (empleadoData) {
-          setEmpleado(empleadoData);
-          
-          if (empleadoData.foto) {
-            localStorage.setItem("picture", empleadoData.foto);
-          }
-          
-          setFormData({
-            fotoBuk: empleadoData.foto || "",
-            nombres: empleadoData.nombre || "",
-            telefono: empleadoData.Celular || "",
-            cargo: empleadoData.cargo || "",
-            puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora,
-            nombreLider: nombreLider
-          });
-          
-          setMensaje({ texto: "✓ Empleado encontrado", tipo: "success" });
-        } else {
-          setEmpleado(null);
-          setMensaje({ texto: "No se encontró empleado con ese documento", tipo: "error" });
-        }
+        setEmpleado(empleadoData);
+        setFormData({
+          fotoBuk: empleadoData.foto || "",
+          nombres: empleadoData.nombre || "",
+          telefono: empleadoData.Celular || "",
+          cargo: empleadoData.cargo || "",
+          puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora,
+          nombreLider: nombreLider
+        });
+        setMensaje({ texto: "✓ Empleado encontrado", tipo: "success" });
       } else {
         setEmpleado(null);
-        setMensaje({ texto: "Error al buscar el empleado", tipo: "error" });
+        setMensaje({ texto: "No se encontró empleado con ese documento", tipo: "error" });
       }
     } catch (error) {
       setEmpleado(null);
@@ -91,6 +97,16 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
       setLoading(false);
     }
   };
+
+  // Auto-búsqueda con debounce
+  useEffect(() => {
+    if (documento.trim().length >= 6 && !empleado) {
+      const timer = setTimeout(() => {
+        buscarEmpleado(documento);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [documento]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -135,13 +151,22 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
   const confirmarGuardado = async () => {
     setMostrarModal(false);
     
+    // Validar y limpiar el teléfono
+    let telefonoValido = null;
+    if (formData.telefono) {
+      const telefonoLimpio = String(formData.telefono).replace(/\D/g, '');
+      if (telefonoLimpio && !isNaN(telefonoLimpio) && telefonoLimpio.length > 0) {
+        telefonoValido = parseInt(telefonoLimpio, 10);
+      }
+    }
+    
     const dataToSend = {
       data: {
         Nombre: formData.nombres || null,
         documento: documento || null,
         pdv: formData.puntoVenta || null,
         lider: formData.nombreLider || null,
-        telefono: formData.telefono ? parseInt(formData.telefono) : null,
+        telefono: telefonoValido,
         foto: formData.fotoBuk || null,
         cargo: formData.cargo || null,
         fecha: new Date().toISOString().split('T')[0],
@@ -214,7 +239,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
                 className="form-input-et"
                 placeholder="Ingrese número de documento"
                 value={documento}
-                onChange={(e) => setDocumento(e.target.value)}
+                onChange={(e) => setDocumento(e.target.value.replace(/\D/g, ''))}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();

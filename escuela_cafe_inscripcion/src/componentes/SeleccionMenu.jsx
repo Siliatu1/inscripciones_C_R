@@ -7,33 +7,40 @@ const SeleccionMenu = ({ onSelectEscuelaCafe, onSelectEvaluacionToderas, onBack,
     <div className="seleccion-menu-container">
       <div className="seleccion-menu-header">
         <button className="back-button-sm" onClick={onBack}>
-          <i className="bi bi-arrow-left-circle"></i> Volver
+          <i className="bi bi-box-arrow-left"></i> CERRAR SESIÓN
         </button>
-
+        <p className="welcome-text">BIENVENIDA DE VUELTA</p>
+        <h1 className="user-name">¡Hola, {nombreUsuario}!</h1>
+        <p className="subtitle-text">Selecciona qué deseas registrar hoy</p>
+        <div className="divider-line"></div>
       </div>
 
       <div className="cards-container-sm">
-        <div className="menu-card-sm escuela-cafe" onClick={onSelectEscuelaCafe}>
-          <div className="card-icon-sm">
-           
+        <div className="menu-card-sm escuela-cafe">
+          <div className="card-icon-wrapper green-bg">
+           <i className="bi bi-cup-hot"></i>
           </div>
-          <h3 className="card-title-sm">ESCUELA  CAFÉ</h3>
-
-          <div className="card-arrow-sm">
-          
-          </div>
+          <h3 className="card-title-sm">Escuela Café</h3>
+          <p className="card-description-sm">
+            Registra y gestiona las formaciones.
+          </p>
+          <button className="btn-ingresar" onClick={onSelectEscuelaCafe}>
+            INGRESAR <i className="bi bi-arrow-right"></i>
+          </button>
         </div>
 
-        <div className="menu-card-sm evaluacion-toderas" onClick={onSelectEvaluacionToderas}>
-          <div className="card-icon-sm">
-        
+        {/* <div className="menu-card-sm evaluacion-toderas">
+          <div className="card-icon-wrapper orange-bg">
+            <i className="bi bi-book"></i>
           </div>
-          <h3 className="card-title-sm">EVALUACIÓN  TODERAS</h3>
-
-          <div className="card-arrow-sm">
-
-          </div>
-        </div>
+          <h3 className="card-title-sm">Evaluación Toderas</h3>
+          <p className="card-description-sm">
+            Registra evaluaciones y seguimiento del desempeño de las Toderas.
+          </p>
+          <button className="btn-ingresar" onClick={onSelectEvaluacionToderas}>
+            INGRESAR <i className="bi bi-arrow-right"></i>
+          </button>
+        </div> */}
       </div>
     </div>
   );

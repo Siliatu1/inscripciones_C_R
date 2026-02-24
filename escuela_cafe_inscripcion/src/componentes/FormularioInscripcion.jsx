@@ -3,6 +3,9 @@ import "./formulario_inscripcion.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { message } from "antd";
 
+// Caché global de empleados
+const empleadosCache = {};
+
 const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
   const [documento, setDocumento] = useState("");
   const [loading, setLoading] = useState(false);
@@ -206,9 +209,27 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
   }, [festivosColombianos, inscripcionesPorFecha, fechasBloqueadas]);
 
 
-  const buscarEmpleado = async () => {
-    if (documento.trim().length < 6) {
+  const buscarEmpleado = async (docBusqueda = documento) => {
+    const docTrim = String(docBusqueda).trim();
+    
+    if (docTrim.length < 6) {
       setMensaje({ texto: "Por favor ingrese al menos 6 dígitos del documento", tipo: "error" });
+      return;
+    }
+
+    // Verificar caché primero
+    if (empleadosCache[docTrim]) {
+      const empleadoData = empleadosCache[docTrim];
+      setEmpleado(empleadoData);
+      setFormData({
+        fotoBuk: empleadoData.foto || "",
+        nombres: empleadoData.nombre || "",
+        telefono: empleadoData.Celular || "",
+        cargo: empleadoData.cargo || "",
+        puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora,
+        nombreLider: nombreLider
+      });
+      setMensaje({ texto: "✓ Empleado encontrado", tipo: "success" });
       return;
     }
 
@@ -217,57 +238,34 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     
     try {
       const response = await fetch(
-        `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${documento}`,
-        {
-          headers: {
-            Accept: "application/json",
-            auth_token: "tmMC1o7cUovQvWoKhvbdhYxx",
-          },
-        }
+        `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${docTrim}`
       );
 
-      if (response.ok) {
-        const data = await response.json();
+      if (!response.ok) throw new Error('Error');
 
+      const data = await response.json();
+      const empleados = data?.data || data;
+      const empleadoData = Array.isArray(empleados) 
+        ? empleados.find(emp => String(emp.document_number) === docTrim)
+        : null;
+      
+      if (empleadoData) {
+        // Guardar en caché
+        empleadosCache[docTrim] = empleadoData;
         
-        if (data && data.ok && data.data && data.data.length > 0) {
-
-          const empleadoData = data.data.find(emp => emp.document_number == documento);
-          
-
-          
-          if (empleadoData) {
-
-            setEmpleado(empleadoData);
-            
-
-            if (empleadoData.foto) {
-              localStorage.setItem("picture", empleadoData.foto);
-            }
-            
-
-            setFormData({
-              fotoBuk: empleadoData.foto || "",
-              nombres: empleadoData.nombre || "",
-              telefono: empleadoData.Celular || "",
-              cargo: empleadoData.cargo || "",
-              puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora,
-              nombreLider: nombreLider
-            });
-            
-            setMensaje({ texto: "✓ Empleado encontrado", tipo: "success" });
-          } else {
-
-            setEmpleado(null);
-            setMensaje({ texto: "No se encontró empleado con ese documento", tipo: "error" });
-          }
-        } else {
-          setEmpleado(null);
-          setMensaje({ texto: "No se encontró empleado con ese documento", tipo: "error" });
-        }
+        setEmpleado(empleadoData);
+        setFormData({
+          fotoBuk: empleadoData.foto || "",
+          nombres: empleadoData.nombre || "",
+          telefono: empleadoData.Celular || "",
+          cargo: empleadoData.cargo || "",
+          puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora,
+          nombreLider: nombreLider
+        });
+        setMensaje({ texto: "✓ Empleado encontrado", tipo: "success" });
       } else {
         setEmpleado(null);
-        setMensaje({ texto: "Error al buscar el empleado", tipo: "error" });
+        setMensaje({ texto: "No se encontró empleado con ese documento", tipo: "error" });
       }
     } catch (error) {
       setEmpleado(null);
@@ -276,6 +274,16 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
       setLoading(false);
     }
   };
+
+  // Auto-búsqueda con debounce
+  useEffect(() => {
+    if (documento.trim().length >= 6 && !empleado) {
+      const timer = setTimeout(() => {
+        buscarEmpleado(documento);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [documento]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -286,10 +294,9 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
   };
 
   const handleDocumentoChange = (e) => {
-    const value = e.target.value;
+    const value = e.target.value.replace(/\D/g, ''); // Solo números
     setDocumento(value);
     
-
     if (value.trim().length < 6) {
       setEmpleado(null);
       setFormData({

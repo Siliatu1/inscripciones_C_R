@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import "./ProfileCard.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
+// Caché global de empleados
+const empleadosCache = {};
+
 const ProfileCard = ({ userData }) => {
   const [empleadoInfo, setEmpleadoInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,49 +23,31 @@ const ProfileCard = ({ userData }) => {
         return;
       }
 
+      const docTrim = String(documentoUsuario).trim();
+      
+      // Verificar caché primero
+      if (empleadosCache[docTrim]) {
+        setEmpleadoInfo(empleadosCache[docTrim]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      
       try {
-        setLoading(true);
         const response = await fetch(
-          `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${documentoUsuario}`,
-          {
-            headers: {
-              Accept: "application/json",
-              auth_token: "tmMC1o7cUovQvWoKhvbdhYxx",
-            },
-          }
+          `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${docTrim}`
         );
 
-        if (response.ok) {
-          const data = await response.json();
-          
-          let empleadoData = null;
-          
-          if (data && data.ok && Array.isArray(data.data) && data.data.length > 0) {
-            empleadoData = data.data.find(emp => emp.document_number == documentoUsuario);
-          } else if (Array.isArray(data) && data.length > 0) {
-            empleadoData = data.find(emp => emp.document_number == documentoUsuario);
-          }
-          
-          if (empleadoData) {
-            setEmpleadoInfo(empleadoData);
-          } else {
+        if (!response.ok) throw new Error('Error');
 
-            setEmpleadoInfo({
-              foto: userData?.data?.foto || userData?.data?.picture || '',
-              nombre: userData?.data?.nombre || userData?.data?.name || 
-                (userData?.data?.first_name && userData?.data?.last_name 
-                  ? `${userData.data.first_name} ${userData.data.last_name}`.trim()
-                  : userData?.data?.full_name || ''),
-              document_number: documentoUsuario,
-              cargo: userData?.data?.cargo_general || userData?.data?.cargo || userData?.data?.position || '',
-              area_nombre: userData?.data?.area_nombre || userData?.data?.department || ''
-            });
-          }
-        }
-      } catch (error) {
-
-
-        setEmpleadoInfo({
+        const data = await response.json();
+        const empleados = data?.data || data;
+        const empleadoData = Array.isArray(empleados) 
+          ? empleados.find(emp => String(emp.document_number) === docTrim)
+          : null;
+        
+        const infoFinal = empleadoData || {
           foto: userData?.data?.foto || userData?.data?.picture || '',
           nombre: userData?.data?.nombre || userData?.data?.name || 
             (userData?.data?.first_name && userData?.data?.last_name 
@@ -71,7 +56,24 @@ const ProfileCard = ({ userData }) => {
           document_number: documentoUsuario,
           cargo: userData?.data?.cargo_general || userData?.data?.cargo || userData?.data?.position || '',
           area_nombre: userData?.data?.area_nombre || userData?.data?.department || ''
-        });
+        };
+        
+        // Guardar en caché
+        empleadosCache[docTrim] = infoFinal;
+        setEmpleadoInfo(infoFinal);
+      } catch (error) {
+        const infoFallback = {
+          foto: userData?.data?.foto || userData?.data?.picture || '',
+          nombre: userData?.data?.nombre || userData?.data?.name || 
+            (userData?.data?.first_name && userData?.data?.last_name 
+              ? `${userData.data.first_name} ${userData.data.last_name}`.trim()
+              : userData?.data?.full_name || ''),
+          document_number: documentoUsuario,
+          cargo: userData?.data?.cargo_general || userData?.data?.cargo || userData?.data?.position || '',
+          area_nombre: userData?.data?.area_nombre || userData?.data?.department || ''
+        };
+        empleadosCache[docTrim] = infoFallback;
+        setEmpleadoInfo(infoFallback);
       } finally {
         setLoading(false);
       }
