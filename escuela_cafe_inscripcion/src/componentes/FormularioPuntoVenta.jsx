@@ -3,7 +3,7 @@ import "./formulario_punto_venta.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { message } from "antd";
 
-// Caché global de empleados
+
 const empleadosCache = {};
 
 const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
@@ -111,16 +111,21 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
   }, []);
 
 
+  /**
+   * Determina qué meses deben mostrarse para la inscripción
+   * Lógica: Del 1-14 del mes se muestra solo el mes actual
+   *         Del 15 en adelante se muestra el mes actual y el siguiente
+   * @returns Array de objetos {year, month} con los meses a mostrar
+   */
   const obtenerMesesAMostrar = () => {
     const hoy = new Date();
     const diaActual = hoy.getDate();
-    const mesActual = hoy.getMonth(); 
+    const mesActual = hoy.getMonth();
     const yearActual = hoy.getFullYear();
 
     const meses = [];
     
     if (diaActual >= 15) {
-      // Del 15 en adelante: Mostrar mes actual Y el siguiente
       meses.push({ year: yearActual, month: mesActual });
       
       if (mesActual === 11) { 
@@ -129,7 +134,6 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
         meses.push({ year: yearActual, month: mesActual + 1 });
       }
     } else {
-      // Del 1 al 14: Mostrar solo el mes actual
       meses.push({ year: yearActual, month: mesActual });
     }
     
@@ -137,6 +141,14 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
   };
 
 
+  /**
+   * Obtiene todos los martes, miércoles y jueves de un mes específico
+   * Verifica disponibilidad: máximo 2 inscripciones por fecha (solo punt o de venta)
+   * Excluye: festivos colombianos y fechas bloqueadas manualmente
+   * @param {number} year - Año
+   * @param {number} month - Mes (0-11)
+   * @returns Array de objetos con información de cada fecha disponible
+   */
   const obtenerMartesMiercolesJueves = (year, month) => {
     const fechas = [];
     const ultimoDia = new Date(year, month + 1, 0).getDate();
@@ -149,20 +161,14 @@ const FormularioPuntoVenta = ({ onBack, onSubmit, coordinadoraData }) => {
     const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     
     for (let dia = 1; dia <= ultimoDia; dia++) {
-
       const fecha = new Date(year, month, dia);
       const diaSemana = fecha.getDay();
-      
 
       if (diaSemana === 2 || diaSemana === 3 || diaSemana === 4) {
-
         const fechaStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
         
-        // Verificar si es festivo o está bloqueada
         const esFestivo = festivosColombianos.includes(fechaStr);
         const estaBloqueada = fechasBloqueadas.includes(fechaStr);
-        
-
         const numInscripciones = inscripcionesPorFecha[fechaStr] || 0;
         const disponible = numInscripciones < 2 && !esFestivo && !estaBloqueada;
         

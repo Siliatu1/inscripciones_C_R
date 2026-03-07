@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import "./ProfileCard.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
-// Caché global de empleados
+
 const empleadosCache = {};
 
-const ProfileCard = ({ userData }) => {
+const ProfileCard = ({ userData, onLogout }) => {
   const [empleadoInfo, setEmpleadoInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -24,8 +24,7 @@ const ProfileCard = ({ userData }) => {
       }
 
       const docTrim = String(documentoUsuario).trim();
-      
-      // Verificar caché primero
+    
       if (empleadosCache[docTrim]) {
         setEmpleadoInfo(empleadosCache[docTrim]);
         setLoading(false);
@@ -58,7 +57,7 @@ const ProfileCard = ({ userData }) => {
           area_nombre: userData?.data?.area_nombre || userData?.data?.department || ''
         };
         
-        // Guardar en caché
+
         empleadosCache[docTrim] = infoFinal;
         setEmpleadoInfo(infoFinal);
       } catch (error) {
@@ -154,6 +153,13 @@ const ProfileCard = ({ userData }) => {
               </div>
             </div>
           </div>
+
+          {onLogout && (
+            <button className="profile-logout-button" onClick={onLogout}>
+              <i className="bi bi-box-arrow-right"></i>
+              <span>Cerrar Sesión</span>
+            </button>
+          )}
         </div>
       )}
     </div>

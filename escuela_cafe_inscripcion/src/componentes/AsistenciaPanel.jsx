@@ -18,11 +18,21 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // Documento autorizado para este panel
+  const documentoAutorizado = '35512822';
+
   const nombreUsuario = userData?.data?.nombre || 
     userData?.data?.name ||
     (userData?.data?.first_name && userData?.data?.last_name 
       ? `${userData.data.first_name} ${userData.data.last_name}`.trim()
       : userData?.data?.full_name || '');
+
+  const documentoUsuario = userData?.data?.documento || 
+    userData?.data?.document_number || 
+    userData?.documento || '';
+
+  // Verificar si el usuario tiene acceso
+  const tieneAcceso = String(documentoUsuario).trim() === documentoAutorizado;
 
   const cargarInscripciones = async () => {
     setLoading(true);
@@ -66,8 +76,10 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
   };
 
   useEffect(() => {
-    cargarInscripciones();
-  }, []);
+    if (tieneAcceso) {
+      cargarInscripciones();
+    }
+  }, [tieneAcceso]);
 
   const handleCambiarAsistencia = async (id, nuevoEstado) => {
     try {
@@ -240,6 +252,22 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
 
   const toggleSidebarCollapse = () => {
     setSidebarCollapsed(!sidebarCollapsed);
+  if (!tieneAcceso) {
+    return (
+      <div className="acceso-denegado-container">
+        <div className="acceso-denegado-card">
+          <i className="bi bi-shield-x"></i>
+          <h1>Acceso Denegado</h1>
+          <p>No tienes permisos para acceder a este panel.</p>
+          <p>Solo usuarios autorizados pueden controlar la asistencia de la Escuela del Café.</p>
+          <button onClick={onLogout} className="btn-volver">
+            <i className="bi bi-arrow-left-circle"></i> Volver
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   };
 
   return (
@@ -280,7 +308,7 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
       </aside>
 
       {/* Perfil del Usuario */}
-      <ProfileCard userData={userData} />
+      <ProfileCard userData={userData} onLogout={onLogout} />
 
       <div className={`admin-main-wrapper ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <main className="admin-main">

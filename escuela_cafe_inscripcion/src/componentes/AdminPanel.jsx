@@ -6,7 +6,7 @@ import FormularioPuntoVenta from "./FormularioPuntoVenta";
 import SeleccionMenu from "./SeleccionMenu";
 import EvaluacionTodera from "./EvaluacionTodera";
 import ProfileCard from "./ProfileCard";
-import { Table, Input, Button, Space, message, Popconfirm, Select } from "antd";
+import { Table, Input, Button, Space, message, Popconfirm, Select, Modal } from "antd";
 import { SearchOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 
@@ -31,18 +31,18 @@ const AdminPanel = ({ userData, onLogout }) => {
     fecha: ''
   });
   const [dataFiltrada, setDataFiltrada] = useState([]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [inscripcionesTodera, setInscripcionesTodera] = useState([]);
   const [loadingTodera, setLoadingTodera] = useState(false);
   const [filtrosTodera, setFiltrosTodera] = useState({
     cedula: '',
     puntoVenta: '',
-    fecha: ''
+    fecha: '',
+    instructora: ''
   });
   const [dataFiltradaTodera, setDataFiltradaTodera] = useState([]);
   const [tabActivo, setTabActivo] = useState('todos');
   const [seccionActiva, setSeccionActiva] = useState('escuela_cafe'); // 'escuela_cafe' o 'evaluacion_todera'
+  const [modalPuntosVentaVisible, setModalPuntosVentaVisible] = useState(false);
 
 
   const nombreUsuario = userData?.data?.nombre || 
@@ -112,6 +112,12 @@ const AdminPanel = ({ userData, onLogout }) => {
   };
 
 
+  /**
+   * Carga las inscripciones de Escuela del Café desde la API
+   * Filtra los datos según el rol del usuario:
+   * - Roles administrativos ven todas las inscripciones
+   * - Roles de heladería/punto de venta ven solo su PDV
+   */
   const cargarInscripciones = async () => {
     setLoading(true);
     try {
@@ -141,15 +147,6 @@ const AdminPanel = ({ userData, onLogout }) => {
           });
         }
         
-
-        
-
-
-        dataArray.forEach((item, index) => {
-
-        });
-        
-
         const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
         const puntoVentaUsuario = userData?.data?.area_nombre || userData?.area_nombre || '';
         let dataFiltradaPorRol = dataArray;
@@ -189,7 +186,10 @@ const AdminPanel = ({ userData, onLogout }) => {
   };
 
 
-  // informacion de la tabla de toderas.
+  /**
+   * Carga las evaluaciones de toderas desde la API
+   * Aplica los mismos filtros de permisos que cargarInscripciones
+   */
   const cargarInscripcionesTodera = async () => {
     setLoadingTodera(true);
     try {
@@ -201,7 +201,7 @@ const AdminPanel = ({ userData, onLogout }) => {
           dataArray = result.data.map(item => ({
             id: item.id,
             cedula: item.attributes?.documento || '',
-            nombres: item.attributes?.Nombre || '',
+            nombres: item.attributes?.nombre || item.attributes?.Nombre || '',
             telefono: item.attributes?.telefono || '',
             cargo: item.attributes?.cargo || '',
             puntoVenta: item.attributes?.pdv || '',
@@ -229,14 +229,10 @@ const AdminPanel = ({ userData, onLogout }) => {
         setInscripcionesTodera(dataFiltradaPorRol);
         setDataFiltradaTodera(dataFiltradaPorRol);
       } else {
-        // Error del servidor, pero no afecta la funcionalidad principal
-        console.warn(`No se pudieron cargar las evaluaciones toderas (código ${response.status})`);
         setInscripcionesTodera([]);
         setDataFiltradaTodera([]);
       }
     } catch (error) {
-      // Error de red o servidor, continuar sin datos de toderas
-      console.warn('No se pudieron cargar las evaluaciones toderas:', error.message);
       setInscripcionesTodera([]);
       setDataFiltradaTodera([]);
     } finally {
@@ -403,6 +399,12 @@ const AdminPanel = ({ userData, onLogout }) => {
       );
     }
 
+    if (filtrosTodera.instructora) {
+      dataTemp = dataTemp.filter(item => 
+        item.nombreLider && item.nombreLider.toLowerCase().includes(filtrosTodera.instructora.toLowerCase())
+      );
+    }
+
     setDataFiltradaTodera(dataTemp);
   };
 
@@ -411,7 +413,7 @@ const AdminPanel = ({ userData, onLogout }) => {
   }, [filtrosTodera, inscripcionesTodera]);
 
   const limpiarFiltrosTodera = () => {
-    setFiltrosTodera({ cedula: '', puntoVenta: '', fecha: '' });
+    setFiltrosTodera({ cedula: '', puntoVenta: '', fecha: '', instructora: '' });
   };
 
 
@@ -634,10 +636,23 @@ const AdminPanel = ({ userData, onLogout }) => {
       width: 150,
     },
     {
-      title: 'Nombre Líder',
+      title: 'Instructora',
       dataIndex: 'nombreLider',
       key: 'nombreLider',
       width: 180,
+      render: (text) => (
+        <span style={{
+          backgroundColor: '#fff7e6',
+          color: '#d46b08',
+          padding: '4px 12px',
+          borderRadius: '12px',
+          fontWeight: '500',
+          fontSize: '12px',
+          display: 'inline-block'
+        }}>
+          {text || 'Sin asignar'}
+        </span>
+      )
     },
     {
       title: 'Categoría',
@@ -706,6 +721,21 @@ const AdminPanel = ({ userData, onLogout }) => {
     return rolesVerAmbasTablas.includes(cargoUsuario);
   };
 
+  // Verificar si el usuario puede ver el filtro de instructora
+  const puedeVerFiltroInstructora = () => {
+    const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
+    return rolesVerTodo.includes(cargoUsuario);
+  };
+
+  // Obtener lista de instructoras únicas
+  const obtenerInstructoras = () => {
+    return [...new Set(inscripciones.map(item => item.nombreLider).filter(Boolean))].sort();
+  };
+
+  const obtenerInstructorasTodera = () => {
+    return [...new Set(inscripcionesTodera.map(item => item.nombreLider).filter(Boolean))].sort();
+  };
+
 
   const calcularEstadisticas = () => {
     const totalInscritos = inscripciones.length;
@@ -713,6 +743,10 @@ const AdminPanel = ({ userData, onLogout }) => {
     const puntosVenta = [...new Set(inscripciones.map(item => item.puntoVenta).filter(Boolean))].length;
 
     return { totalInscritos, puntosVenta };
+  };
+
+  const obtenerPuntosVentaVinculados = () => {
+    return [...new Set(inscripciones.map(item => item.puntoVenta).filter(Boolean))].sort();
   };
 
 
@@ -755,121 +789,74 @@ const AdminPanel = ({ userData, onLogout }) => {
     }
   }
 
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
-
-  const toggleSidebarCollapse = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-
   return (
     <div className="admin-container">
-      <button className="mobile-menu-toggle" onClick={toggleSidebar}>
-        <i className="bi bi-list"></i>
-      </button>
-      
-      <div 
-        className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
-        onClick={closeSidebar}
-      ></div>
+      {/* Header Superior */}
+      <header className="admin-header">
+        <div className="header-left">
 
-      {/* Sidebar Lateral */}
-      <aside className={`admin-sidebar ${sidebarOpen ? 'active' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
-        
-        {/* Barra clickeable para colapsar sidebar */}
-        <div 
-          className="sidebar-toggle-bar" 
-          onClick={toggleSidebarCollapse} 
-          title={sidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
-        >
-          <i className={`bi ${sidebarCollapsed ? 'bi-chevron-double-right' : 'bi-chevron-double-left'}`}></i>
+          <span className="header-logo-text">ESCUELA DEL CAFÉ</span>
         </div>
         
-        <nav className="sidebar-nav">
-          <a href="#" className="sidebar-item active" onClick={closeSidebar}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
-              </svg>
-            <span>Panel líneas de producto</span>
-          </a>
-          
+        <div className="header-nav">
           {tieneAccesoDual() ? (
             <>
-              <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioEscuelaCafe(); closeSidebar(); }}>
+              <button className="header-nav-btn" onClick={handleAbrirFormularioEscuelaCafe}>
                 <i className="bi bi-cup-hot"></i>
-                <span>Escuela del Café HEL</span>
-              </a>
-              <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioPuntoVenta(); closeSidebar(); }}>
+                <span>Escuela Café HEL</span>
+              </button>
+              <button className="header-nav-btn" onClick={handleAbrirFormularioPuntoVenta}>
                 <i className="bi bi-shop-window"></i>
-                <span>Escuela del Café PDV</span>
-              </a>
+                <span>Escuela Café PDV</span>
+              </button>
             </>
           ) : rolesPuntoVenta.includes(userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '') ? (
             <>
-              <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioPuntoVenta(); closeSidebar(); }}>
+              <button className="header-nav-btn" onClick={handleAbrirFormularioPuntoVenta}>
                 <i className="bi bi-cup-hot"></i>
                 <span>Escuela del Café</span>
-              </a>
-              <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioEvaluacionTodera(); closeSidebar(); }}>
+              </button>
+              <button className="header-nav-btn" onClick={handleAbrirFormularioEvaluacionTodera}>
                 <i className="bi bi-clipboard-check"></i>
                 <span>Evaluación Toderas</span>
-              </a>
+              </button>
             </>
           ) : rolesHeladeria.includes(userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '') ? (
-            <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioEscuelaCafe(); closeSidebar(); }}>
-              <i className="bi bi-cup-hot"></i>
-              <span>Escuela del Café</span>
-            </a>
+            <button className="header-nav-btn" onClick={handleAbrirFormularioEscuelaCafe}>
+              
+              <span>Inscripcion  Aquí</span>
+            </button>
           ) : (
-            <a href="#" className="sidebar-item" onClick={(e) => { handleRegistrarPersona(e); closeSidebar(); }}>
+            <button className="header-nav-btn" onClick={handleRegistrarPersona}>
               <i className="bi bi-book"></i>
-              <span>Registrar</span>
-            </a>
+              <span>Registrar Estudiante</span>
+            </button>
           )}
           
           {puedeVerTodera() && !rolesPuntoVenta.includes(userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '') && (
-            <a href="#" className="sidebar-item" onClick={(e) => { e.preventDefault(); handleAbrirFormularioEvaluacionTodera(); closeSidebar(); }}>
+            <button className="header-nav-btn" onClick={handleAbrirFormularioEvaluacionTodera}>
               <i className="bi bi-clipboard-check"></i>
               <span>Evaluación Todera</span>
-            </a>
+            </button>
           )}
-        </nav>
-
-        <div className="sidebar-footer">
-          <button className="sidebar-logout" onClick={(e) => { onLogout(); closeSidebar(); }}>
-            <i className="bi bi-box-arrow-left"></i>
-            <span>Salir</span>
-          </button>
         </div>
-      </aside>
-
-      {/* Perfil del Usuario */}
-      <ProfileCard userData={userData} />
+        
+        <div className="header-right">
+          <ProfileCard userData={userData} onLogout={onLogout} />
+        </div>
+      </header>
 
       {/* Contenido Principal */}
-      <div className={`admin-main-wrapper ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-
-
-        {/* Main Content */}
-        <main className="admin-main">
+      <main className="admin-main">
         <div className="admin-content">
 
-          <h1 className="admin-title">Hola, {nombreUsuario} </h1>
-
+          <h1 className="admin-title">Hola, {nombreUsuario}</h1>
           <h2 className="admin-subtitle">Gestiona estudiantes y cursos de la escuela de café</h2>
 
           {/* Cards de Estadísticas */}
           <div className="stats-container">
-            <div className="stat-card">
-            
+            <div className="stat-card stat-card-green">
+              
               <div className="stat-content">
                 <h3>{calcularEstadisticas().totalInscritos}</h3>
                 <p>TOTAL INSCRITAS</p>
@@ -877,37 +864,34 @@ const AdminPanel = ({ userData, onLogout }) => {
               </div>
             </div>
 
-
-            <div className="stat-card">
-              <div className="stat-icon" style={{ background: '#fce4ec' }}>
-                <i className="bi bi-geo-alt-fill" style={{ color: '#e91e63' }}></i>
-              </div>
+            <div className="stat-card stat-card-pink" onClick={() => setModalPuntosVentaVisible(true)} style={{ cursor: 'pointer' }}>
+              
               <div className="stat-content">
                 <h3>{calcularEstadisticas().puntosVenta}</h3>
                 <p>PUNTOS DE VENTA</p>
-                <span>Sedes vinculadas</span>
+                <span>Sedes vinculadas - Click para ver detalles</span>
               </div>
             </div>
           </div>
 
-          {/* Navegación principal - Botones de sección */}
-          <div className="section-selector">
+          {/* Botón de Sección Grande */}
+          <div className="main-section-button-container">
             <button 
-              className={`section-button ${seccionActiva === 'escuela_cafe' ? 'active' : ''}`}
+              className={`main-section-button ${seccionActiva === 'escuela_cafe' ? 'active' : ''}`}
               onClick={() => {
                 setSeccionActiva('escuela_cafe');
               }}
             >
-             <i className="bi bi-cup-hot"></i>
+              
               <span>Escuela del Café</span>
             </button>
             
             {puedeVerTodera() && (
               <button 
-                className={`section-button ${seccionActiva === 'evaluacion_todera' ? 'active' : ''}`}
+                className={`main-section-button ${seccionActiva === 'evaluacion_todera' ? 'active' : ''}`}
                 onClick={() => setSeccionActiva('evaluacion_todera')}
               >
-                <i className="bi bi-clipboard-check-fill"></i>
+                
                 <span>Evaluación Todera</span>
               </button>
             )}
@@ -918,85 +902,90 @@ const AdminPanel = ({ userData, onLogout }) => {
             <>
               {/* Filtros */}
               <div className="filters-container">
-            <h3 className="filters-title"><i className="bi bi-funnel-fill"></i> FILTROS DE BÚSQUEDA</h3>
-            <Space wrap size="middle" style={{ width: '100%' }}>
-              <Input
-                placeholder="Buscar por cédula"
-                prefix={<SearchOutlined />}
-                value={filtros.cedula}
-                onChange={(e) => setFiltros({ ...filtros, cedula: e.target.value })}
-                style={{ width: 200 }}
-              />
-              <Select
-                placeholder="Punto de venta"
-                allowClear
-                showSearch
-                value={filtros.puntoVenta || undefined}
-                onChange={(value) => setFiltros({ ...filtros, puntoVenta: value || '' })}
-                style={{ width: 220 }}
-                filterOption={(input, option) =>
-                  (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {[...new Set(inscripciones.map(item => item.puntoVenta).filter(Boolean))]
-                  .sort()
-                  .map(pdv => (
-                    <Select.Option key={pdv} value={pdv}>{pdv}</Select.Option>
-                  ))}
-              </Select>
-              <Select
-                placeholder="Filtrar por fecha"
-                allowClear
-                showSearch
-                value={filtros.fecha || undefined}
-                onChange={(value) => setFiltros({ ...filtros, fecha: value || '' })}
-                style={{ width: 180 }}
-              >
-                {[...new Set(inscripciones.map(item => item.dia).filter(Boolean))]
-                  .sort((a, b) => b.localeCompare(a))
-                  .map(fecha => {
-                    const [year, month, day] = fecha.split('-');
-                    const fechaFormateada = `${day}/${month}/${year}`;
-                    return (
-                      <Select.Option key={fecha} value={fecha}>{fechaFormateada}</Select.Option>
-                    );
-                  })}
-              </Select>
-              <Button onClick={limpiarFiltros}>
-                Limpiar
-              </Button>
-              <Button 
-                type="primary" 
-                icon={<DownloadOutlined />} 
-                onClick={exportarExcel}
-                style={{ background: '#9cbf8b' }}
-              >
-                Exportar a Excel
-              </Button>
-            </Space>
-          </div>
+                <h3 className="filters-title"> FILTROS DE BÚSQUEDA</h3>
+                <Space wrap size="middle" style={{ width: '100%' }}>
+                  <Input
+                    placeholder="Buscar por cédula..."
+                    prefix={<SearchOutlined />}
+                    value={filtros.cedula}
+                    onChange={(e) => setFiltros({ ...filtros, cedula: e.target.value })}
+                    style={{ width: 200 }}
+                  />
+                  <Select
+                    placeholder="Punto de venta"
+                    allowClear
+                    showSearch
+                    value={filtros.puntoVenta || undefined}
+                    onChange={(value) => setFiltros({ ...filtros, puntoVenta: value || '' })}
+                    style={{ width: 220 }}
+                    filterOption={(input, option) =>
+                      (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                  >
+                    {[...new Set(inscripciones.map(item => item.puntoVenta).filter(Boolean))]
+                      .sort()
+                      .map(pdv => (
+                        <Select.Option key={pdv} value={pdv}>{pdv}</Select.Option>
+                      ))}
+                  </Select>
+                  <Select
+                    placeholder="Filtrar por fecha"
+                    allowClear
+                    showSearch
+                    value={filtros.fecha || undefined}
+                    onChange={(value) => setFiltros({ ...filtros, fecha: value || '' })}
+                    style={{ width: 180 }}
+                  >
+                    {[...new Set(inscripciones.map(item => item.dia).filter(Boolean))]
+                      .sort((a, b) => b.localeCompare(a))
+                      .map(fecha => {
+                        const [year, month, day] = fecha.split('-');
+                        const fechaFormateada = `${day}/${month}/${year}`;
+                        return (
+                          <Select.Option key={fecha} value={fecha}>{fechaFormateada}</Select.Option>
+                        );
+                      })}
+                  </Select>
+                  <Button onClick={limpiarFiltros}>
+                    Limpiar
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    icon={<DownloadOutlined />} 
+                    onClick={exportarExcel}
+                    style={{ background: '#52B788', borderColor: '#52B788' }}
+                  >
+                    Exportar a Excel
+                  </Button>
+                </Space>
+              </div>
 
               {/* Tabla de inscripciones */}
-              <div style={{ background: '#fff', borderRadius: '8px', padding: '20px', overflowX: 'auto', marginBottom: '30px' }}>
-            <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <strong style={{ fontSize: '16px', color: '#2C2416' }}>Inscripciones Escuela del Café</strong>
-              <span style={{ color: '#666' }}>Registros cargados: {inscripciones.length}, Filtrados: {dataFiltrada.length}</span>
-            </div>
-            <Table
-              columns={columns}
-              dataSource={dataFiltrada || []}
-              loading={loading}
-              rowKey={(record) => record.id || `${record.cedula}-${record.dia}` || Math.random().toString(36)}
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total) => `Total ${total} inscripciones`
-              }}
-              scroll={{ x: 1500 }}
-              locale={{
-                emptyText: 'No hay inscripciones registradas'
-              }}
-            />
+              <div className="table-card">
+                <div className="table-header">
+                  <div className="table-title">
+
+                    <strong>Inscripciones Escuela del Café </strong>
+                  </div>
+                  <span className="table-count">
+                    Registros {inscripciones.length} | Filtrados {dataFiltrada.length}
+                  </span>
+                </div>
+                <Table
+                  columns={columns}
+                  dataSource={dataFiltrada || []}
+                  loading={loading}
+                  rowKey={(record) => record.id || `${record.cedula}-${record.dia}` || Math.random().toString(36)}
+                  pagination={{
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showTotal: (total) => `Total ${total} inscripciones`
+                  }}
+                  scroll={{ x: 1500 }}
+                  locale={{
+                    emptyText: 'No hay inscripciones registradas'
+                  }}
+                />
               </div>
             </>
           ) : null}
@@ -1007,7 +996,7 @@ const AdminPanel = ({ userData, onLogout }) => {
                 <h3 className="filters-title"><i className="bi bi-funnel-fill"></i> FILTROS EVALUACIONES TODERA</h3>
                 <Space wrap size="middle" style={{ width: '100%' }}>
                   <Input
-                    placeholder="Buscar por cédula"
+                    placeholder="Buscar por cédula..."
                     prefix={<SearchOutlined />}
                     value={filtrosTodera.cedula}
                     onChange={(e) => setFiltrosTodera({ ...filtrosTodera, cedula: e.target.value })}
@@ -1048,6 +1037,23 @@ const AdminPanel = ({ userData, onLogout }) => {
                         );
                       })}
                   </Select>
+                  {puedeVerFiltroInstructora() && (
+                    <Select
+                      placeholder="Seleccionar instructora"
+                      allowClear
+                      showSearch
+                      value={filtrosTodera.instructora || undefined}
+                      onChange={(value) => setFiltrosTodera({ ...filtrosTodera, instructora: value || '' })}
+                      style={{ width: 220 }}
+                      filterOption={(input, option) =>
+                        (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                    >
+                      {obtenerInstructorasTodera().map(instructora => (
+                        <Select.Option key={instructora} value={instructora}>{instructora}</Select.Option>
+                      ))}
+                    </Select>
+                  )}
                   <Button onClick={limpiarFiltrosTodera}>
                     Limpiar
                   </Button>
@@ -1055,17 +1061,24 @@ const AdminPanel = ({ userData, onLogout }) => {
                     type="primary" 
                     icon={<DownloadOutlined />} 
                     onClick={exportarExcelTodera}
-                    style={{ background: '#9cbf8b' }}
+                    style={{ background: '#52B788', borderColor: '#52B788' }}
                   >
                     Exportar a Excel
                   </Button>
                 </Space>
               </div>
 
-              <div style={{ background: '#fff', borderRadius: '8px', padding: '20px', overflowX: 'auto' }}>
-                <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ fontSize: '16px', color: '#2C2416' }}>Evaluaciones Todera</strong>
-                  <span style={{ color: '#666' }}>Registros cargados: {inscripcionesTodera.length}, Filtrados: {dataFiltradaTodera.length}</span>
+              <div className="table-card">
+                <div className="table-header">
+                  <div className="table-title">
+                    <div className="table-icon">
+                      <i className="bi bi-clipboard-check"></i>
+                    </div>
+                    <strong>Evaluaciones Todera</strong>
+                  </div>
+                  <span className="table-count">
+                    Registros {inscripcionesTodera.length} | Filtrados {dataFiltradaTodera.length}
+                  </span>
                 </div>
                 <Table
                   columns={columnsTodera}
@@ -1088,9 +1101,72 @@ const AdminPanel = ({ userData, onLogout }) => {
 
         </div>
       </main>
-      </div>
 
-      
+      {/* Modal Puntos de Venta */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <i className="bi bi-shop-window" style={{ fontSize: '24px', color: '#E63946' }}></i>
+            <span>Puntos de Venta Vinculados</span>
+          </div>
+        }
+        open={modalPuntosVentaVisible}
+        onCancel={() => setModalPuntosVentaVisible(false)}
+        footer={[
+          <Button key="close" type="primary" onClick={() => setModalPuntosVentaVisible(false)}>
+            Cerrar
+          </Button>
+        ]}
+        width={600}
+      >
+        <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+          {obtenerPuntosVentaVinculados().length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {obtenerPuntosVentaVinculados().map((pdv, index) => (
+                <div 
+                  key={index}
+                  style={{
+                    padding: '12px 16px',
+                    background: '#f8f9fa',
+                    borderRadius: '8px',
+                    border: '1px solid #e9ecef',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#e9ecef';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <i className="bi bi-geo-alt-fill" style={{ fontSize: '18px', color: '#E63946' }}></i>
+                  <span style={{ fontWeight: '500', color: '#2c3e50', flex: 1 }}>{pdv}</span>
+                  <span style={{
+                    background: '#E63946',
+                    color: 'white',
+                    padding: '4px 12px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    {inscripciones.filter(i => i.puntoVenta === pdv).length} inscritos
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6c757d' }}>
+              <i className="bi bi-inbox" style={{ fontSize: '48px', marginBottom: '16px', display: 'block' }}></i>
+              <p>No hay puntos de venta vinculados</p>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };

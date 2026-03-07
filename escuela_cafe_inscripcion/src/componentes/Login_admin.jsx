@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "./login_admin.css";
 import AdminPanel from "./AdminPanel";
 import AsistenciaPanel from "./AsistenciaPanel";
+import PanelToderas from "./PanelToderas";
 
 const Login_admin = () => {
   const [documento, setDocumento] = useState("");
@@ -59,13 +60,32 @@ const Login_admin = () => {
 
   if (isAuthenticated) {
     const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
+    const documentoUsuario = userData?.data?.documento || userData?.data?.document_number || userData?.documento || '';
     
-
-    if (cargoUsuario === 'INSTRUCTOR') {
+    // Documentos autorizados para PanelToderas (instructoras de evaluación todera)
+    const documentosToderas = [
+      '30386710', '52395525', '52422155', '52525496', '1020758053',
+      '1077845053', '39276283', '35416150', '22797275', '49792488',
+      '52701678', '28549413', '1019005012', '49606652', '53075347',
+      '1079605138', '21032351', '52439552', '52962339', '1116547316',
+      '23876197', '66681589', '52799048', '1075538331', '49776128',
+      '37550615', '37339972', '1019073170'
+    ];
+    
+    // Documento autorizado para AsistenciaPanel (Escuela del Café)
+    const documentoAsistencia = '35512822';
+    
+    // Si es una instructora de evaluación todera
+    if (documentosToderas.includes(String(documentoUsuario).trim())) {
+      return <PanelToderas userData={userData} onLogout={handleLogout} />;
+    }
+    
+    // Si es el encargado de asistencia Escuela del Café
+    if (String(documentoUsuario).trim() === documentoAsistencia) {
       return <AsistenciaPanel userData={userData} onLogout={handleLogout} />;
     }
     
-
+    // Para todos los demás (Admin general)
     return <AdminPanel userData={userData} onLogout={handleLogout} />;
   }
 

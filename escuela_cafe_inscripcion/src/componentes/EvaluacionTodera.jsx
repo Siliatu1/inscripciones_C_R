@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import "./evaluacion_todera.css";
+import "./formulario_inscripcion.css"; 
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { message } from "antd";
+import axios from "axios";
 
-// Caché global de empleados
+
 const empleadosCache = {};
 
 const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
@@ -31,6 +32,9 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
     puntoVenta: puntoVentaCoordinadora,
     nombreLider: nombreLider
   });
+  
+  const [instructora, setInstructora] = useState(null);
+  const [loadingInstructora, setLoadingInstructora] = useState(false);
 
   const buscarEmpleado = async (docBusqueda = documento) => {
     const docTrim = String(docBusqueda).trim();
@@ -47,7 +51,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
       setFormData({
         fotoBuk: empleadoData.foto || "",
         nombres: empleadoData.nombre || "",
-        telefono: empleadoData.Celular || "",
+        telefono: empleadoData.Celular.toString() || "",
         cargo: empleadoData.cargo || "",
         puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora,
         nombreLider: nombreLider
@@ -61,7 +65,8 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
     
     try {
       const response = await fetch(
-        `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${docTrim}`
+        `https://apialohav2.crepesywaffles.com/buk/empleados3?document_
+        =${docTrim}`
       );
 
       if (!response.ok) throw new Error('Error');
@@ -98,6 +103,67 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
     }
   };
 
+  /**
+   * Busca la instructora asignada según el punto de venta y la categoría seleccionada
+   * Realiza una consulta a la API de Strapi con filtros específicos para obtener
+   * la instructora correcta y actualiza el formulario automáticamente
+   */
+  const buscarInstructora = async (categoriaSeleccionada) => {
+    if (!puntoVentaCoordinadora || !categoriaSeleccionada) {
+      return;
+    }
+
+    setLoadingInstructora(true);
+    
+    try {
+      // Construir URL con filtros de Strapi según la categoría
+      const pdvEncoded = encodeURIComponent(puntoVentaCoordinadora);
+      const url = `https://macfer.crepesywaffles.com/api/cap-pdvs?filters[cap_instructoras][${categoriaSeleccionada}][$eq]=true&filters[nombre][$eq]=${pdvEncoded}&populate[cap_instructoras][filters][${categoriaSeleccionada}][$eq]=true`;
+      
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Error al buscar instructora');
+      }
+
+      const data = await response.json();
+      
+      if (data?.data && data.data.length > 0) {
+        const pdvData = data.data[0];
+        const instructoras = pdvData.attributes?.cap_instructoras?.data;
+        
+        if (instructoras && instructoras.length > 0) {
+          // Con los filtros aplicados en la API, debería venir solo la instructora correcta
+          const instructoraEncontrada = instructoras[0];
+
+          if (instructoraEncontrada) {
+            const nombreInstructora = instructoraEncontrada.attributes?.Nombre || '';
+            setInstructora(nombreInstructora);
+            setFormData(prev => ({
+              ...prev,
+              nombreLider: nombreInstructora
+            }));
+            message.success(`Instructora asignada: ${nombreInstructora}`);
+          } else {
+            message.warning(`No se encontró instructora de ${categoriaSeleccionada} para este punto de venta`);
+            setInstructora(null);
+          }
+        } else {
+          message.warning('No hay instructoras registradas para este punto de venta');
+          setInstructora(null);
+        }
+      } else {
+        message.warning('No se encontró información del punto de venta');
+        setInstructora(null);
+      }
+    } catch (error) {
+      message.error('Error al buscar la instructora');
+      setInstructora(null);
+    } finally {
+      setLoadingInstructora(false);
+    }
+  };
+
   // Auto-búsqueda con debounce
   useEffect(() => {
     if (documento.trim().length >= 6 && !empleado) {
@@ -107,6 +173,13 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
       return () => clearTimeout(timer);
     }
   }, [documento]);
+
+  // Buscar instructora cuando cambie la categoría
+  useEffect(() => {
+    if (categoria && empleado) {
+      buscarInstructora(categoria);
+    }
+  }, [categoria]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -120,6 +193,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
     setDocumento("");
     setEmpleado(null);
     setCategoria("");
+    setInstructora(null);
     setFormData({
       fotoBuk: "",
       nombres: "",
@@ -145,98 +219,104 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
       return;
     }
 
+    // Advertencia si no hay instructora, pero permitir continuar
+    if (!instructora) {
+      message.warning("No se encontró instructora asignada automáticamente");
+    }
+
     setMostrarModal(true);
   };
 
   const confirmarGuardado = async () => {
     setMostrarModal(false);
+    setLoading(true);  
     
-    // Validar y limpiar el teléfono
-    let telefonoValido = null;
+
+    const categoriaEnMayusculas = categoria ? categoria.toUpperCase() : '';
+    
+    // Limpiar teléfono (como STRING, no número)
+    let telefonoFinal = '';
     if (formData.telefono) {
-      const telefonoLimpio = String(formData.telefono).replace(/\D/g, '');
-      if (telefonoLimpio && !isNaN(telefonoLimpio) && telefonoLimpio.length > 0) {
-        telefonoValido = parseInt(telefonoLimpio, 10);
-      }
+      telefonoFinal = String(formData.telefono).replace(/\D/g, '');
     }
     
+    // Construir objeto base con todos los datos necesarios para el envío
     const dataToSend = {
       data: {
-        Nombre: formData.nombres || null,
-        documento: documento || null,
-        pdv: formData.puntoVenta || null,
-        lider: formData.nombreLider || null,
-        telefono: telefonoValido,
-        foto: formData.fotoBuk || null,
-        cargo: formData.cargo || null,
+        Nombre: formData.nombres,
+        documento: documento.toString(),
+        telefono: telefonoFinal,
+        pdv: formData.puntoVenta,
+        lider: instructora || formData.nombreLider || '',
+        foto: formData.fotoBuk || '',
+        cargo: formData.cargo,
         fecha: new Date().toISOString().split('T')[0],
-        categoria: categoria || null
+        categoria: categoriaEnMayusculas
       }
     };
 
     try {
-      const response = await fetch('https://macfer.crepesywaffles.com/api/cap-toderas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataToSend)
-      });
+      const response = await axios.post(
+        'https://macfer.crepesywaffles.com/api/cap-toderas',
+        dataToSend
+      );
 
-      if (response.ok) {
-        const result = await response.json();
-        message.success("✓ Evaluación registrada con éxito");
-        limpiarFormulario();
+      message.success("✓ Evaluación registrada con éxito");
+      limpiarFormulario();
+      setLoading(false);
 
-        if (onSubmit) {
-          onSubmit({ success: true, data: result });
-        }
-      } else {
-        const errorText = await response.text();
- 
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          if (errorData.error && errorData.error.message) {
-            message.error(`Error: ${errorData.error.message}`);
-          } else {
-            message.error(`Error al registrar la evaluación (${response.status})`);
-          }
-        } catch (e) {
-          message.error(`Error al registrar la evaluación (${response.status})`);
-        }
+      if (onSubmit) {
+        onSubmit({ success: true, data: response.data });
       }
     } catch (error) {
-
+      setLoading(false);
+      
+      if (error.response) {
+        const errorData = error.response.data;
+        
+        if (errorData?.error?.message) {
+          message.error(`Error: ${errorData.error.message}`);
+        } else if (errorData?.error?.details) {
+          message.error(`Error en validación: ${JSON.stringify(errorData.error.details)}`);
+        } else {
+          message.error(`Error ${error.response.status}: ${JSON.stringify(errorData)}`);
+        }
+      } else if (error.request) {
+        message.error('No se recibió respuesta del servidor');
+      } else {
+        message.error('Error al configurar la petición');
+      }
     }
   };
 
   return (
-    <div className="evaluacion-todera-container">
-      <div className="evaluacion-todera-header">
-        <button className="back-button-et" onClick={onBack}>
-          <i className="bi bi-arrow-left-circle"></i> Volver
-        </button>
-        <h1 className="evaluacion-todera-title">EVALUACIÓN  TODERAS</h1>
+    <div className="inscripcion-container">
+      <div className="decoration-circle circle-1"></div>
+      <div className="decoration-circle circle-2"></div>
+      <div className="decoration-circle circle-3"></div>
 
-      </div>
+      <button className="back-button-outside" onClick={onBack}>
+        <i className="bi bi-arrow-left-circle-fill"></i>
+        <span>Volver</span>
+      </button>
 
-      {/* Alerta importante */}
-      <div className="alerta-evaluacion">
-        <i className="bi bi-exclamation-triangle-fill"></i>
-        <span>ALERTA:
-           SOLO SE PUEDE INSCRIBIR SI YA ESTÁ 100% LISTA PARA LA EVALUACIÓN</span>
-      </div>
+      <div className="inscripcion-card">
+        <h1 className="inscripcion-subtitle">EVALUACIÓN TODERAS</h1>
 
-      <div className="form-container-et">
-        <form onSubmit={handleSubmit} className="evaluacion-form-et">
+        {/* Alerta importante */}
+        <div className="alerta-evaluacion-box">
+          <i className="bi bi-exclamation-triangle-fill"></i>
+          <span>SOLO SE PUEDE INSCRIBIR SI YA ESTÁ 100% LISTA PARA LA EVALUACIÓN</span>
+        </div>
+
+        <form onSubmit={handleSubmit} className="inscripcion-form">
           {/* Búsqueda de empleado */}
-          <div className="form-section-et">
-            <label className="form-label-et">NÚMERO DE DOCUMENTO </label>
-            <div className="search-container-et">
+          <div className="form-section">
+            <label className="form-label">NÚMERO DE DOCUMENTO *</label>
+            <div className="search-input-container">
               <input
                 type="text"
-                className="form-input-et"
+                className="form-input"
                 placeholder="Ingrese número de documento"
                 value={documento}
                 onChange={(e) => setDocumento(e.target.value.replace(/\D/g, ''))}
@@ -249,7 +329,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
               />
               <button
                 type="button"
-                className="search-button-et"
+                className="search-button"
                 onClick={buscarEmpleado}
                 disabled={loading}
               >
@@ -261,7 +341,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
               </button>
             </div>
             {mensaje.texto && (
-              <div className={`mensaje-et ${mensaje.tipo}`}>
+              <div className={`mensaje ${mensaje.tipo}`}>
                 {mensaje.texto}
               </div>
             )}
@@ -270,51 +350,77 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
           {/* Información del empleado */}
           {empleado && (
             <>
-              <div className="employee-card-et">
-                {formData.fotoBuk && (
-                  <div className="employee-photo-et">
-                    <img src={formData.fotoBuk} alt="Foto empleado" />
+              {/* Card de información del empleado */}
+              {formData.fotoBuk && (
+                <div className="form-section photo-section">
+                  <label className="form-label">FOTO</label>
+                  <div className="photo-preview">
+                    <img src={formData.fotoBuk} alt="Foto empleado" className="employee-photo" />
                   </div>
-                )}
-                <div className="employee-info-et">
-                  <h3>{formData.nombres}</h3>
-                  <p><i className="bi bi-briefcase"></i> {formData.cargo}</p>
-                  <p><i className="bi bi-geo-alt"></i> {formData.puntoVenta}</p>
-                  <p><i className="bi bi-telephone"></i> {formData.telefono}</p>
                 </div>
-              </div>
+              )}
 
-              {/* Nombre del líder (solo lectura) */}
-              <div className="form-section-et">
-                <label className="form-label-et">NOMBRE DEL LÍDER</label>
+              {/* Nombres */}
+              <div className="form-section">
+                <label className="form-label">NOMBRES COMPLETOS *</label>
                 <input
                   type="text"
-                  name="nombreLider"
-                  className="form-input-et"
-                  value={formData.nombreLider}
+                  name="nombres"
+                  className="form-input"
+                  value={formData.nombres}
                   readOnly
-                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  disabled
+                  style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
                 />
               </div>
 
-              {/* Punto de venta del líder (solo lectura) */}
-              <div className="form-section-et">
-                <label className="form-label-et">PUNTO DE VENTA</label>
+              {/* Teléfono */}
+              <div className="form-section">
+                <label className="form-label">TELÉFONO</label>
+                <input
+                  type="tel"
+                  name="telefono"
+                  className="form-input"
+                  value={formData.telefono}
+                  readOnly
+                  disabled
+                  style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
+                />
+              </div>
+
+              {/* Cargo */}
+              <div className="form-section">
+                <label className="form-label">CARGO</label>
+                <input
+                  type="text"
+                  name="cargo"
+                  className="form-input"
+                  value={formData.cargo}
+                  readOnly
+                  disabled
+                  style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
+                />
+              </div>
+
+              {/* Punto de venta */}
+              <div className="form-section">
+                <label className="form-label">PUNTO DE VENTA</label>
                 <input
                   type="text"
                   name="puntoVenta"
-                  className="form-input-et"
+                  className="form-input"
                   value={formData.puntoVenta}
                   readOnly
-                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  disabled
+                  style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
                 />
               </div>
 
               {/* Categoría */}
-              <div className="form-section-et">
-                <label className="form-label-et">CATEGORÍA *</label>
+              <div className="form-section">
+                <label className="form-label">CATEGORÍA *</label>
                 <select
-                  className="form-select-et"
+                  className="form-input"
                   value={categoria}
                   onChange={(e) => setCategoria(e.target.value)}
                   required
@@ -326,17 +432,49 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
                 </select>
               </div>
 
+              {/* Nombre de la instructora - Se muestra después de seleccionar categoría */}
+              {categoria && (
+                <div className="form-section">
+                  <label className="form-label">
+                    NOMBRE DE LA INSTRUCTORA
+                    {loadingInstructora && <i className="bi bi-hourglass-split" style={{ marginLeft: '8px' }}></i>}
+                  </label>
+                  <input
+                    type="text"
+                    name="nombreLider"
+                    className="form-input"
+                    value={loadingInstructora ? 'Buscando instructora...' : (instructora || 'Sin asignar')}
+                    readOnly
+                    disabled
+                    style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
+                  />
+                </div>
+              )}
+
               {/* Botones de acción */}
-              <div className="form-actions-et">
+              <div className="button-container">
                 <button
                   type="button"
-                  className="cancel-button-et"
+                  className="button-secondary"
                   onClick={limpiarFormulario}
+                  disabled={loading}
                 >
-                  Limpiar
+                  <i className="bi bi-x-circle"></i> Limpiar
                 </button>
-                <button type="submit" className="submit-button-et">
-                  Registrar Evaluación
+                <button 
+                  type="submit" 
+                  className="button-primary"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <i className="bi bi-hourglass-split"></i> Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-check-circle"></i> Registrar Evaluación
+                    </>
+                  )}
                 </button>
               </div>
             </>

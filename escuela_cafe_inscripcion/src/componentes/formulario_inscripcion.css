@@ -1366,3 +1366,111 @@
     transform: translateX(3px);
   }
 }
+
+/* Alerta específica para evaluación todera */
+.alerta-evaluacion-box {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  color: white;
+  padding: 16px 20px;
+  margin-bottom: 25px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 15px rgba(238, 90, 82, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  animation: pulseAlert 2s ease-in-out infinite;
+}
+
+.alerta-evaluacion-box i {
+  font-size: 24px;
+  animation: shakeAlert 3s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.alerta-evaluacion-box span {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+/* Contenedor de botones */
+.button-container {
+  display: flex;
+  gap: 15px;
+  margin-top: 25px;
+  justify-content: space-between;
+}
+
+.button-primary,
+.button-secondary {
+  flex: 1;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.button-primary {
+  background: linear-gradient(135deg, #8B7355 0%, #6B5644 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(139, 115, 85, 0.3);
+}
+
+.button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 115, 85, 0.4);
+  background: linear-gradient(135deg, #6B5644 0%, #5B4634 100%);
+}
+
+.button-secondary {
+  background: white;
+  color: #8B7355;
+  border: 2px solid #8B7355;
+}
+
+.button-secondary:hover {
+  background: #f5f5f5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 115, 85, 0.2);
+}
+
+.button-primary i,
+.button-secondary i {
+  font-size: 18px;
+}
+
+@media (max-width: 480px) {
+  .alerta-evaluacion-box {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .alerta-evaluacion-box i {
+    font-size: 20px;
+  }
+
+  .alerta-evaluacion-box span {
+    font-size: 12px;
+  }
+
+  .button-container {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .button-primary,
+  .button-secondary {
+    width: 100%;
+    padding: 14px;
+  }
+}

@@ -29,18 +29,19 @@ const SeleccionMenu = ({ onSelectEscuelaCafe, onSelectEvaluacionToderas, onBack,
           </button>
         </div>
 
-        {/* <div className="menu-card-sm evaluacion-toderas">
+        <div className="menu-card-sm evaluacion-toderas">
           <div className="card-icon-wrapper orange-bg">
             <i className="bi bi-book"></i>
           </div>
           <h3 className="card-title-sm">Evaluación Toderas</h3>
+
           <p className="card-description-sm">
             Registra evaluaciones y seguimiento del desempeño de las Toderas.
           </p>
           <button className="btn-ingresar" onClick={onSelectEvaluacionToderas}>
             INGRESAR <i className="bi bi-arrow-right"></i>
           </button>
-        </div> */}
+        </div> 
       </div>
     </div>
   );

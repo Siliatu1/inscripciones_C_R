@@ -3,7 +3,7 @@ import "./formulario_inscripcion.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { message } from "antd";
 
-// Caché global de empleados
+
 const empleadosCache = {};
 
 const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
@@ -20,6 +20,8 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
   const [mostrarInfoEmpleado, setMostrarInfoEmpleado] = useState(true);
   const [fechasBloqueadas, setFechasBloqueadas] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [mostrarModalPuntosVenta, setMostrarModalPuntosVenta] = useState(false);
+  const [puntosVenta, setPuntosVenta] = useState([]);
   
   const cargoCoordinadora = coordinadoraData?.data?.cargo_general || coordinadoraData?.data?.position || "";
   const puntoVentaCoordinadora = coordinadoraData?.data?.area_nombre || "";
@@ -111,17 +113,48 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     cargarFechasBloqueadas();
   }, []);
 
+  /**
+   * Carga los puntos de venta únicos desde la API
+   * Útil para el modal de visualización de puntos de venta
+   */
+  useEffect(() => {
+    const cargarPuntosVenta = async () => {
+      try {
+        const response = await fetch('https://macfer.crepesywaffles.com/api/cap-cafes');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data && Array.isArray(result.data)) {
+            const puntosUnicos = [...new Set(
+              result.data
+                .map(item => item.attributes?.pdv)
+                .filter(Boolean)
+            )].sort();
+            setPuntosVenta(puntosUnicos);
+          }
+        }
+      } catch (error) {
 
+      }
+    };
+    cargarPuntosVenta();
+  }, []);
+
+
+  /**
+   * Determina qué meses deben mostrarse para la inscripción
+   * Lógica: Del 1-14 del mes se muestra solo el mes actual
+   *         Del 15 en adelante se muestra el mes actual y el siguiente
+   * @returns Array de objetos {year, month} con los meses a mostrar
+   */
   const obtenerMesesAMostrar = () => {
     const hoy = new Date();
     const diaActual = hoy.getDate();
-    const mesActual = hoy.getMonth(); // 0-11
+    const mesActual = hoy.getMonth();
     const yearActual = hoy.getFullYear();
 
     const meses = [];
     
     if (diaActual >= 15) {
-      // Del 15 en adelante: Mostrar mes actual Y el siguiente
       meses.push({ year: yearActual, month: mesActual });
       
       if (mesActual === 11) { 
@@ -130,13 +163,20 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
         meses.push({ year: yearActual, month: mesActual + 1 });
       }
     } else {
-      // Del 1 al 14: Mostrar solo el mes actual
       meses.push({ year: yearActual, month: mesActual });
     }
     
     return meses;
   };
 
+  /**
+   * Obtiene todos los lunes y viernes de un mes específico
+   * Verifica disponibilidad: máximo 3 inscripciones por fecha
+   * Excluye: festivos colombianos y fechas bloqueadas manualmente
+   * @param {number} year - Año
+   * @param {number} month - Mes (0-11)
+   * @returns Array de objetos con información de cada fecha disponible
+   */
   const obtenerLunesYViernes = (year, month) => {
     const fechas = [];
     const ultimoDia = new Date(year, month + 1, 0).getDate();
@@ -149,19 +189,14 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     
     for (let dia = 1; dia <= ultimoDia; dia++) {
-
       const fecha = new Date(year, month, dia);
       const diaSemana = fecha.getDay();
       
       if (diaSemana === 1 || diaSemana === 5) {
-        // Formatear fecha como YYYY-MM-DD sin conversiones UTC
         const fechaStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
         
-        // Verificar si es festivo o está bloqueada
         const esFestivo = festivosColombianos.includes(fechaStr);
         const estaBloqueada = fechasBloqueadas.includes(fechaStr);
-        
-
         const numInscripciones = inscripcionesPorFecha[fechaStr] || 0;
         const disponible = numInscripciones < 3 && !esFestivo && !estaBloqueada;
         
@@ -623,15 +658,45 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
                   {/* Punto de venta */}
                   <div className="form-section">
                     <label className="form-label">PUNTO DE VENTA</label>
-                    <input
-                      type="text"
-                      name="puntoVenta"
-                      placeholder="Ubicación o punto de venta"
-                      value={formData.puntoVenta}
-                      className="form-input"
-                      readOnly
-                      disabled
-                    />
+                    <div className="punto-venta-container" style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        name="puntoVenta"
+                        placeholder="Ubicación o punto de venta"
+                        value={formData.puntoVenta}
+                        className="form-input"
+                        readOnly
+                        disabled
+                      />
+                      <button
+                        type="button"
+                        className="ver-puntos-venta-btn"
+                        onClick={() => setMostrarModalPuntosVenta(true)}
+                        title="Ver todos los puntos de venta"
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '30px',
+                          height: '30px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '16px',
+                          transition: 'background 0.3s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#0056b3'}
+                        onMouseOut={(e) => e.currentTarget.style.background = '#007bff'}
+                      >
+                        <i className="bi bi-geo-alt-fill"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -781,6 +846,84 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
                 onClick={confirmarGuardado}
               >
                 Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Puntos de Venta */}
+      {mostrarModalPuntosVenta && (
+        <div className="modal-overlay-confirmacion" onClick={() => setMostrarModalPuntosVenta(false)}>
+          <div className="modal-confirmacion" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '70vh' }}>
+            <div className="modal-confirmacion-header" style={{ background: '#007bff' }}>
+              <i className="bi bi-geo-alt-fill"></i>
+              <h2>PUNTOS DE VENTA</h2>
+              <button
+                onClick={() => setMostrarModalPuntosVenta(false)}
+                style={{
+                  position: 'absolute',
+                  right: '15px',
+                  top: '15px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '0',
+                  lineHeight: '1'
+                }}
+              >
+                <i className="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+            <div className="modal-confirmacion-body" style={{ maxHeight: '50vh', overflowY: 'auto', padding: '20px' }}>
+              <div style={{ marginBottom: '15px', fontWeight: 'bold', fontSize: '18px', color: '#333' }}>
+                Total de sedes vinculadas: {puntosVenta.length}
+              </div>
+              {puntosVenta.length > 0 ? (
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  {puntosVenta.map((punto, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        padding: '12px 15px',
+                        background: '#f8f9fa',
+                        borderRadius: '8px',
+                        border: '1px solid #dee2e6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        transition: 'all 0.3s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = '#e9ecef';
+                        e.currentTarget.style.transform = 'translateX(5px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = '#f8f9fa';
+                        e.currentTarget.style.transform = 'translateX(0)';
+                      }}
+                    >
+                      <i className="bi bi-pin-map-fill" style={{ color: '#007bff', fontSize: '20px' }}></i>
+                      <span style={{ fontSize: '15px', color: '#495057' }}>{punto}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
+                  <i className="bi bi-inbox" style={{ fontSize: '48px', marginBottom: '15px', display: 'block' }}></i>
+                  <p>No hay puntos de venta registrados</p>
+                </div>
+              )}
+            </div>
+            <div className="modal-confirmacion-footer">
+              <button 
+                className="btn-modal-guardar"
+                onClick={() => setMostrarModalPuntosVenta(false)}
+                style={{ width: '100%' }}
+              >
+                Cerrar
               </button>
             </div>
           </div>
