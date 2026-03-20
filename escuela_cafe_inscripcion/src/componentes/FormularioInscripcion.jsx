@@ -273,7 +273,7 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
     
     try {
       const response = await fetch(
-        `https://apialohav2.crepesywaffles.com/buk/empleados3?document_number=${docTrim}`
+        `https://apialohav2.crepesywaffles.com/buk/empleados3?documento=${docTrim}`
       );
 
       if (!response.ok) throw new Error('Error');
