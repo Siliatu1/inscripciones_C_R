@@ -6,11 +6,12 @@ import FormularioPuntoVenta from "./FormularioPuntoVenta";
 import SeleccionMenu from "./SeleccionMenu";
 import EvaluacionTodera from "./EvaluacionTodera";
 import ProfileCard from "./ProfileCard";
-import { Table, Input, Button, Space, message, Popconfirm, Select, Modal } from "antd";
-import { SearchOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Input, Button, Space, message, Popconfirm, Select, Modal, Switch, Tag, Tooltip } from "antd";
+import { SearchOutlined, DownloadOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 
 const AdminPanel = ({ userData, onLogout }) => {
+  const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
   const cargoUsuarioInicial = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
   const rolesPuntoVentaCheck = [
     'ADMINISTRADORA PUNTO DE VENTA',
@@ -43,6 +44,36 @@ const AdminPanel = ({ userData, onLogout }) => {
   const [tabActivo, setTabActivo] = useState('todos');
   const [seccionActiva, setSeccionActiva] = useState('escuela_cafe'); // 'escuela_cafe' o 'evaluacion_todera'
   const [modalPuntosVentaVisible, setModalPuntosVentaVisible] = useState(false);
+  const [gestionInstructoras, setGestionInstructoras] = useState([]);
+  const [dataFiltradaGestionInstructoras, setDataFiltradaGestionInstructoras] = useState([]);
+  const [loadingGestionInstructoras, setLoadingGestionInstructoras] = useState(false);
+  const [instructorasDisponibles, setInstructorasDisponibles] = useState([]);
+  const [loadingInstructorasDisponibles, setLoadingInstructorasDisponibles] = useState(false);
+  const [instructorasFiltradas, setInstructorasFiltradas] = useState([]);
+  const [loadingInstructorasFiltradas, setLoadingInstructorasFiltradas] = useState(false);
+  const [modalGestionVisible, setModalGestionVisible] = useState(false);
+  const [modalNuevaInstructoraVisible, setModalNuevaInstructoraVisible] = useState(false);
+  const [loadingNuevaInstructora, setLoadingNuevaInstructora] = useState(false);
+  const [formGestion, setFormGestion] = useState({
+    pdvId: '',
+    categoria: '',
+    instructoraId: ''
+  });
+  const [formNuevaInstructora, setFormNuevaInstructora] = useState({
+    documento: '',
+    nombre: '',
+    telefono: '',
+    correo: '',
+    sal: false,
+    dulce: false,
+    bebidas: false,
+    brunch: false,
+    habilitado: true
+  });
+  const [filtrosGestionInstructoras, setFiltrosGestionInstructoras] = useState({
+    puntoVenta: '',
+    categoria: ''
+  });
 
 
   const nombreUsuario = userData?.data?.nombre || 
@@ -109,6 +140,18 @@ const AdminPanel = ({ userData, onLogout }) => {
     if (!userData) return false;
     const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
     return !cargosRestringidos.includes(cargoUsuario);
+  };
+
+  const getStrapiJsonHeaders = () => {
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+
+    if (strapiToken) {
+      headers.Authorization = `Bearer ${strapiToken}`;
+    }
+
+    return headers;
   };
 
 
@@ -204,6 +247,7 @@ const AdminPanel = ({ userData, onLogout }) => {
             nombres: item.attributes?.nombre || item.attributes?.Nombre || '',
             telefono: item.attributes?.telefono || '',
             cargo: item.attributes?.cargo || '',
+            cargoEvaluar: item.attributes?.cargo_evaluar || item.attributes?.cargoEvaluar || '',
             puntoVenta: item.attributes?.pdv || '',
             dia: item.attributes?.fecha || '',
             nombreLider: item.attributes?.lider || '',
@@ -246,6 +290,10 @@ const AdminPanel = ({ userData, onLogout }) => {
       const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
       if (rolesVerAmbasTablas.includes(cargoUsuario)) {
         cargarInscripcionesTodera();
+      }
+      if (rolesAccesoDual.includes(cargoUsuario)) {
+        cargarGestionInstructoras();
+        cargarInstructorasDisponibles();
       }
     }
   }, [vistaActual]);
@@ -416,6 +464,390 @@ const AdminPanel = ({ userData, onLogout }) => {
     setFiltrosTodera({ cedula: '', puntoVenta: '', fecha: '', instructora: '' });
   };
 
+  const obtenerCategoriasInstructora = (atributos = {}) => {
+    const categorias = [];
+    if (atributos.sal === true) categorias.push('SAL');
+    if (atributos.dulce === true) categorias.push('DULCE');
+    if (atributos.bebidas === true) categorias.push('BEBIDAS');
+    return categorias;
+  };
+
+  const cargarGestionInstructoras = async () => {
+    setLoadingGestionInstructoras(true);
+    try {
+      let response = await fetch('https://macfer.crepesywaffles.com/api/cap-pdvs?populate=cap_instructoras');
+      if (!response.ok) {
+        response = await fetch('https://macfer.crepesywaffles.com/api/cap-pdvs?populate=*');
+      }
+
+      if (!response.ok) {
+        throw new Error('No fue posible cargar puntos de venta');
+      }
+
+      const result = await response.json();
+      const data = Array.isArray(result?.data) ? result.data : [];
+      const filas = [];
+
+      data.forEach((pdvItem) => {
+        const pdvId = pdvItem?.id;
+        const pdvNombre = pdvItem?.attributes?.nombre || '';
+        const instructoras = pdvItem?.attributes?.cap_instructoras?.data || [];
+
+        const categoriaMap = {
+          sal: null,
+          dulce: null,
+          bebidas: null,
+          brunch: null
+        };
+
+        instructoras.forEach((insItem) => {
+          const attrs = insItem?.attributes || {};
+          const nombreInstructora = attrs?.Nombre || attrs?.nombre || 'Sin nombre';
+          const instructoraId = insItem.id;
+
+          if (attrs.sal === true) {
+            categoriaMap.sal = { instructoraId, instructoraNombre: nombreInstructora };
+          }
+          if (attrs.dulce === true) {
+            categoriaMap.dulce = { instructoraId, instructoraNombre: nombreInstructora };
+          }
+          if (attrs.bebidas === true) {
+            categoriaMap.bebidas = { instructoraId, instructoraNombre: nombreInstructora };
+          }
+          if (attrs.brunch === true || attrs.Brunch === true) {
+            categoriaMap.brunch = { instructoraId, instructoraNombre: nombreInstructora };
+          }
+        });
+
+        filas.push({
+          key: `${pdvId}`,
+          pdvId,
+          puntoVenta: pdvNombre,
+          sal: categoriaMap.sal,
+          dulce: categoriaMap.dulce,
+          bebidas: categoriaMap.bebidas,
+          brunch: categoriaMap.brunch,
+          instructorasIds: instructoras.map(i => i.id)
+        });
+      });
+
+      setGestionInstructoras(filas);
+      setDataFiltradaGestionInstructoras(filas);
+    } catch (error) {
+      message.error('Error al cargar gestión de instructoras');
+      setGestionInstructoras([]);
+      setDataFiltradaGestionInstructoras([]);
+    } finally {
+      setLoadingGestionInstructoras(false);
+    }
+  };
+
+  const cargarInstructorasDisponibles = async () => {
+    setLoadingInstructorasDisponibles(true);
+    try {
+      const response = await fetch('https://macfer.crepesywaffles.com/api/cap-instructoras');
+      if (!response.ok) {
+        throw new Error('No fue posible cargar instructoras');
+      }
+
+      const result = await response.json();
+      const data = Array.isArray(result?.data) ? result.data : [];
+      const instructoras = data.map((item) => ({
+        id: item.id,
+        nombre: item?.attributes?.Nombre || item?.attributes?.nombre || `Instructora ${item.id}`,
+        habilitado: item?.attributes?.habilitado !== false
+      }));
+      setInstructorasDisponibles(instructoras);
+    } catch (error) {
+      message.error('Error al cargar la lista de instructoras');
+      setInstructorasDisponibles([]);
+    } finally {
+      setLoadingInstructorasDisponibles(false);
+    }
+  };
+
+  const aplicarFiltrosGestionInstructoras = () => {
+    let dataTemp = [...gestionInstructoras];
+
+    if (filtrosGestionInstructoras.puntoVenta) {
+      dataTemp = dataTemp.filter((item) => item.puntoVenta.toLowerCase().includes(filtrosGestionInstructoras.puntoVenta.toLowerCase()));
+    }
+
+    setDataFiltradaGestionInstructoras(dataTemp);
+  };
+
+  useEffect(() => {
+    aplicarFiltrosGestionInstructoras();
+  }, [filtrosGestionInstructoras, gestionInstructoras]);
+
+  const limpiarFiltrosGestionInstructoras = () => {
+    setFiltrosGestionInstructoras({ puntoVenta: '', categoria: '' });
+  };
+
+  const cargarInstructorasPorCategoria = async (categoria) => {
+    if (!categoria) {
+      setInstructorasFiltradas([]);
+      return;
+    }
+    setLoadingInstructorasFiltradas(true);
+    try {
+      const campo = categoria.toLowerCase();
+      const response = await fetch(
+        `https://macfer.crepesywaffles.com/api/cap-instructoras?filters[${campo}][$eq]=true`
+      );
+      if (!response.ok) throw new Error('Error');
+      const result = await response.json();
+      const data = Array.isArray(result?.data) ? result.data : [];
+      const instructoras = data.map((item) => ({
+        id: item.id,
+        nombre: item?.attributes?.Nombre || item?.attributes?.nombre || `Instructora ${item.id}`,
+        habilitado: item?.attributes?.habilitado !== false
+      }));
+      setInstructorasFiltradas(instructoras);
+    } catch (error) {
+      setInstructorasFiltradas([]);
+      message.error('Error al cargar instructoras por categoría');
+    } finally {
+      setLoadingInstructorasFiltradas(false);
+    }
+  };
+
+  const abrirModalGestionInstructoras = (pdvId = '', categoria = '') => {
+    setFormGestion({ pdvId: String(pdvId), categoria, instructoraId: '' });
+    setInstructorasFiltradas([]);
+    setModalGestionVisible(true);
+    if (categoria) {
+      cargarInstructorasPorCategoria(categoria);
+    }
+  };
+
+  const resetFormNuevaInstructora = () => {
+    setFormNuevaInstructora({
+      documento: '',
+      nombre: '',
+      telefono: '',
+      correo: '',
+      sal: false,
+      dulce: false,
+      bebidas: false,
+      brunch: false,
+      habilitado: true
+    });
+  };
+
+  const crearInstructora = async () => {
+    const documento = formNuevaInstructora.documento.trim();
+    const nombre = formNuevaInstructora.nombre.trim();
+    const telefono = formNuevaInstructora.telefono.trim();
+    const correo = formNuevaInstructora.correo.trim();
+    const tieneCategoria = formNuevaInstructora.sal || formNuevaInstructora.dulce || formNuevaInstructora.bebidas || formNuevaInstructora.brunch;
+
+    if (!documento) {
+      message.warning('Ingresa el documento de la instructora');
+      return;
+    }
+
+    if (!nombre) {
+      message.warning('Ingresa el nombre de la instructora');
+      return;
+    }
+
+    if (!telefono) {
+      message.warning('Ingresa el telefono de la instructora');
+      return;
+    }
+
+    if (!correo) {
+      message.warning('Ingresa el correo de la instructora');
+      return;
+    }
+
+    if (!tieneCategoria) {
+      message.warning('Selecciona al menos una categoría');
+      return;
+    }
+
+    setLoadingNuevaInstructora(true);
+    try {
+      const payload = {
+        data: {
+          documento,
+          Nombre: nombre,
+          telefono,
+          correo,
+          sal: formNuevaInstructora.sal,
+          dulce: formNuevaInstructora.dulce,
+          bebidas: formNuevaInstructora.bebidas,
+          brunch: formNuevaInstructora.brunch,
+          habilitado: formNuevaInstructora.habilitado
+        }
+      };
+
+      console.log('Crear instructora payload:', payload);
+
+      const response = await fetch('https://macfer.crepesywaffles.com/api/cap-instructoras', {
+        method: 'POST',
+        headers: getStrapiJsonHeaders(),
+        body: JSON.stringify(payload)
+      });
+
+      const responseText = await response.text();
+      console.log('Crear instructora status:', response.status);
+      console.log('Crear instructora response:', responseText);
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('La API no permite crear instructoras con este cliente. Debes habilitar el permiso Create en Strapi o configurar VITE_STRAPI_TOKEN.');
+        }
+        throw new Error(responseText || 'No fue posible crear la instructora');
+      }
+
+      message.success('Instructora creada exitosamente');
+      setModalNuevaInstructoraVisible(false);
+      resetFormNuevaInstructora();
+      cargarInstructorasDisponibles();
+
+      if (formGestion.categoria) {
+        cargarInstructorasPorCategoria(formGestion.categoria);
+      }
+    } catch (error) {
+      message.error(error?.message || 'Error al crear instructora');
+    } finally {
+      setLoadingNuevaInstructora(false);
+    }
+  };
+
+  const agregarInstructoraAPuntoVenta = async () => {
+    if (!formGestion.pdvId || !formGestion.instructoraId || !formGestion.categoria) {
+      message.warning('Completa punto de venta, categoría e instructora');
+      return;
+    }
+
+    try {
+      const responsePdv = await fetch(`https://macfer.crepesywaffles.com/api/cap-pdvs/${formGestion.pdvId}?populate=cap_instructoras`);
+      if (!responsePdv.ok) {
+        throw new Error('No se pudo obtener el punto de venta seleccionado');
+      }
+
+      const pdvResult = await responsePdv.json();
+      const instructorasActuales = pdvResult?.data?.attributes?.cap_instructoras?.data || [];
+      const idsActuales = instructorasActuales.map((item) => item.id);
+      const instructoraIdNumber = Number(formGestion.instructoraId);
+      const idsActualizados = idsActuales.includes(instructoraIdNumber)
+        ? idsActuales
+        : [...idsActuales, instructoraIdNumber];
+
+      const responseUpdatePdv = await fetch(`https://macfer.crepesywaffles.com/api/cap-pdvs/${formGestion.pdvId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: {
+            cap_instructoras: idsActualizados
+          }
+        })
+      });
+
+      if (!responseUpdatePdv.ok) {
+        throw new Error('No fue posible asignar la instructora al punto de venta');
+      }
+
+      const responseUpdateInstructora = await fetch(`https://macfer.crepesywaffles.com/api/cap-instructoras/${instructoraIdNumber}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: {
+            [formGestion.categoria.toLowerCase()]: true
+          }
+        })
+      });
+
+      if (!responseUpdateInstructora.ok) {
+        throw new Error('La instructora se asignó al PDV, pero no se pudo actualizar la categoría');
+      }
+
+      message.success('Instructora agregada exitosamente');
+      setModalGestionVisible(false);
+      cargarGestionInstructoras();
+      cargarInstructorasDisponibles();
+    } catch (error) {
+      message.error(error?.message || 'Error al agregar instructora');
+    }
+  };
+
+  const toggleInstructoraHabilitada = async (instructoraId, habilitado) => {
+    if (!instructoraId) {
+      message.warning('No hay instructora para actualizar en esta fila');
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://macfer.crepesywaffles.com/api/cap-instructoras/${instructoraId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: { habilitado }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('No fue posible actualizar el estado de la instructora');
+      }
+
+      message.success(`Instructora ${habilitado ? 'habilitada' : 'deshabilitada'} correctamente`);
+      cargarGestionInstructoras();
+      cargarInstructorasDisponibles();
+    } catch (error) {
+      message.error('Error al actualizar el estado');
+    }
+  };
+
+  const eliminarInstructoraDePuntoVenta = async (pdvId, instructoraId) => {
+    if (!pdvId || !instructoraId) {
+      message.warning('No hay una instructora válida para eliminar');
+      return;
+    }
+
+    try {
+      const responsePdv = await fetch(`https://macfer.crepesywaffles.com/api/cap-pdvs/${pdvId}?populate=cap_instructoras`);
+      if (!responsePdv.ok) {
+        throw new Error('No se pudo obtener el punto de venta');
+      }
+
+      const pdvData = await responsePdv.json();
+      const instructorasActuales = pdvData?.data?.attributes?.cap_instructoras?.data || [];
+      const instructorasRestantes = instructorasActuales
+        .filter((item) => item.id !== instructoraId)
+        .map((item) => item.id);
+
+      const response = await fetch(`https://macfer.crepesywaffles.com/api/cap-pdvs/${pdvId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: {
+            cap_instructoras: instructorasRestantes
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('No se pudo eliminar la instructora de este punto de venta');
+      }
+
+      message.success('Instructora eliminada del punto de venta');
+      cargarGestionInstructoras();
+    } catch (error) {
+      message.error(error?.message || 'Error al eliminar instructora');
+    }
+  };
+
 
   const exportarExcel = () => {
     if (dataFiltrada.length === 0) {
@@ -454,7 +886,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       'Cédula': item.cedula || '',
       'Nombres': item.nombres || '',
       'Teléfono': item.telefono || '',
-      'Cargo': item.cargo || '',
+      'Cargo a Evaluar': item.cargoEvaluar || item.cargo || '',
       'Punto de Venta': item.puntoVenta || '',
       'Nombre Líder': item.nombreLider || '',
       'Categoría': item.categoria || '',
@@ -524,10 +956,11 @@ const AdminPanel = ({ userData, onLogout }) => {
       width: 120,
     },
     {
-      title: 'Cargo',
-      dataIndex: 'cargo',
-      key: 'cargo',
-      width: 150,
+      title: 'Cargo a Evaluar',
+      dataIndex: 'cargoEvaluar',
+      key: 'cargoEvaluar',
+      width: 200,
+      render: (_, record) => record.cargoEvaluar || record.cargo || 'Sin definir'
     },
     {
       title: 'Punto de Venta',
@@ -715,10 +1148,92 @@ const AdminPanel = ({ userData, onLogout }) => {
     }
   ];
 
+  const renderCeldaCategoria = (asignacion, pdvId, categoria) => {
+    if (!asignacion) {
+      return (
+        <div style={{ textAlign: 'center' }}>
+          <Tooltip title={`Agregar instructora para ${categoria}`}>
+            <Button
+              type="primary"
+              shape="circle"
+              icon={<PlusOutlined />}
+              size="small"
+              onClick={() => abrirModalGestionInstructoras(pdvId, categoria)}
+            />
+          </Tooltip>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontWeight: 500, color: '#2c3e50', fontSize: '13px' }}>{asignacion.instructoraNombre}</span>
+        <Popconfirm
+          title="¿Eliminar?"
+          description="Se quitará de este PDV."
+          onConfirm={() => eliminarInstructoraDePuntoVenta(pdvId, asignacion.instructoraId)}
+          okText="Eliminar"
+          cancelText="Cancelar"
+          okButtonProps={{ danger: true }}
+        >
+          <Button
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            style={{ padding: '4px 8px', minWidth: 'auto' }}
+          />
+        </Popconfirm>
+      </div>
+    );
+  };
+
+  const columnsGestionInstructoras = [
+    {
+      title: 'Punto de Venta',
+      dataIndex: 'puntoVenta',
+      key: 'puntoVenta',
+      width: 200,
+      sorter: (a, b) => (a.puntoVenta || '').localeCompare(b.puntoVenta || '')
+    },
+    {
+      title: <span style={{ color: '#2f6b17', fontWeight: 'bold' }}>SAL</span>,
+      dataIndex: 'sal',
+      key: 'sal',
+      width: 200,
+      render: (sal, record) => renderCeldaCategoria(sal, record.pdvId, 'SAL')
+    },
+    {
+      title: <span style={{ color: '#2b627a', fontWeight: 'bold' }}>DULCE</span>,
+      dataIndex: 'dulce',
+      key: 'dulce',
+      width: 200,
+      render: (dulce, record) => renderCeldaCategoria(dulce, record.pdvId, 'DULCE')
+    },
+    {
+      title: <span style={{ color: '#6b5600', fontWeight: 'bold' }}>BEBIDAS</span>,
+      dataIndex: 'bebidas',
+      key: 'bebidas',
+      width: 200,
+      render: (bebidas, record) => renderCeldaCategoria(bebidas, record.pdvId, 'BEBIDAS')
+    },
+    {
+      title: <span style={{ color: '#6b4d3a', fontWeight: 'bold' }}>BRUNCH</span>,
+      dataIndex: 'brunch',
+      key: 'brunch',
+      width: 200,
+      render: (brunch, record) => renderCeldaCategoria(brunch, record.pdvId, 'BRUNCH')
+    }
+  ];
+
 
   const puedeVerTodera = () => {
     const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
     return rolesVerAmbasTablas.includes(cargoUsuario);
+  };
+
+  const puedeGestionarInstructoras = () => {
+    const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
+    return rolesAccesoDual.includes(cargoUsuario);
   };
 
   // Verificar si el usuario puede ver el filtro de instructora
@@ -893,6 +1408,23 @@ const AdminPanel = ({ userData, onLogout }) => {
               >
                 
                 <span>Evaluación Todera</span>
+              </button>
+            )}
+
+            {puedeGestionarInstructoras() && (
+              <button
+                className={`main-section-button ${seccionActiva === 'gestion_instructoras' ? 'active' : ''}`}
+                onClick={() => {
+                  setSeccionActiva('gestion_instructoras');
+                  if (!gestionInstructoras.length) {
+                    cargarGestionInstructoras();
+                  }
+                  if (!instructorasDisponibles.length) {
+                    cargarInstructorasDisponibles();
+                  }
+                }}
+              >
+                <span>Gestión Instructoras</span>
               </button>
             )}
           </div>
@@ -1099,8 +1631,217 @@ const AdminPanel = ({ userData, onLogout }) => {
             </>
           )}
 
+          {seccionActiva === 'gestion_instructoras' && puedeGestionarInstructoras() && (
+            <>
+              <div className="filters-container">
+                <h3 className="filters-title">GESTIÓN DE INSTRUCTORAS</h3>
+                <Space wrap size="middle" style={{ width: '100%' }}>
+                  <Input
+                    placeholder="Buscar punto de venta..."
+                    prefix={<SearchOutlined />}
+                    value={filtrosGestionInstructoras.puntoVenta}
+                    onChange={(e) => setFiltrosGestionInstructoras({ ...filtrosGestionInstructoras, puntoVenta: e.target.value })}
+                    style={{ width: 280 }}
+                  />
+
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setModalNuevaInstructoraVisible(true)}
+                    style={{ background: '#52B788', borderColor: '#52B788' }}
+                  >
+                    Agregar instructora
+                  </Button>
+
+                  <Button onClick={limpiarFiltrosGestionInstructoras}>
+                    Limpiar
+                  </Button>
+                </Space>
+              </div>
+
+              <div className="table-card">
+                <div className="table-header">
+                  <div className="table-title">
+                    <strong>Gestión Instructoras</strong>
+                  </div>
+                  <span className="table-count">
+                    Registros {gestionInstructoras.length} | Filtrados {dataFiltradaGestionInstructoras.length}
+                  </span>
+                </div>
+                <Table
+                  columns={columnsGestionInstructoras}
+                  dataSource={dataFiltradaGestionInstructoras || []}
+                  loading={loadingGestionInstructoras}
+                  rowKey={(record) => record.key}
+                  pagination={{
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showTotal: (total) => `Total ${total} registros`
+                  }}
+                  scroll={{ x: 1200 }}
+                  locale={{
+                    emptyText: 'No hay asignaciones de instructoras registradas'
+                  }}
+                />
+              </div>
+            </>
+          )}
+
         </div>
       </main>
+
+      <Modal
+        title="Agregar instructora"
+        open={modalNuevaInstructoraVisible}
+        onCancel={() => {
+          setModalNuevaInstructoraVisible(false);
+          resetFormNuevaInstructora();
+        }}
+        onOk={crearInstructora}
+        okText="Guardar"
+        cancelText="Cancelar"
+        confirmLoading={loadingNuevaInstructora}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
+          <Input
+            placeholder="Documento de la instructora"
+            value={formNuevaInstructora.documento}
+            onChange={(e) => setFormNuevaInstructora({ ...formNuevaInstructora, documento: e.target.value })}
+          />
+
+          <Input
+            placeholder="Nombre de la instructora"
+            value={formNuevaInstructora.nombre}
+            onChange={(e) => setFormNuevaInstructora({ ...formNuevaInstructora, nombre: e.target.value })}
+          />
+
+          <Input
+            placeholder="Telefono de la instructora"
+            value={formNuevaInstructora.telefono}
+            onChange={(e) => setFormNuevaInstructora({ ...formNuevaInstructora, telefono: e.target.value })}
+          />
+
+          <Input
+            placeholder="Correo de la instructora"
+            value={formNuevaInstructora.correo}
+            onChange={(e) => setFormNuevaInstructora({ ...formNuevaInstructora, correo: e.target.value })}
+          />
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
+            {[
+              { key: 'sal', label: 'SAL' },
+              { key: 'dulce', label: 'DULCE' },
+              { key: 'bebidas', label: 'BEBIDAS' },
+              { key: 'brunch', label: 'BRUNCH' }
+            ].map((item) => (
+              <div
+                key={item.key}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  border: '1px solid #f0f0f0',
+                  borderRadius: '8px'
+                }}
+              >
+                <span style={{ fontWeight: 500 }}>{item.label}</span>
+                <Switch
+                  checked={formNuevaInstructora[item.key]}
+                  onChange={(checked) => setFormNuevaInstructora({ ...formNuevaInstructora, [item.key]: checked })}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 12px',
+              border: '1px solid #f0f0f0',
+              borderRadius: '8px'
+            }}
+          >
+            <span style={{ fontWeight: 500 }}>Habilitada</span>
+            <Switch
+              checked={formNuevaInstructora.habilitado}
+              onChange={(checked) => setFormNuevaInstructora({ ...formNuevaInstructora, habilitado: checked })}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Gestión Instructoras"
+        open={modalGestionVisible}
+        onCancel={() => setModalGestionVisible(false)}
+        onOk={agregarInstructoraAPuntoVenta}
+        okText="Guardar"
+        cancelText="Cancelar"
+        confirmLoading={loadingInstructorasDisponibles || loadingGestionInstructoras}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
+          <Select
+            placeholder="Selecciona punto de venta"
+            showSearch
+            value={formGestion.pdvId || undefined}
+            onChange={(value) => {
+              const nuevoPdv = value || '';
+              setFormGestion({ ...formGestion, pdvId: nuevoPdv, instructoraId: '' });
+            }}
+            filterOption={(input, option) =>
+              (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+          >
+            {[...new Map(gestionInstructoras.filter((item) => item.pdvId && item.puntoVenta).map((item) => [item.pdvId, item])).values()]
+              .sort((a, b) => (a.puntoVenta || '').localeCompare(b.puntoVenta || ''))
+              .map((item) => (
+                <Select.Option key={item.pdvId} value={String(item.pdvId)}>{item.puntoVenta}</Select.Option>
+              ))}
+          </Select>
+
+          <Select
+            placeholder="Selecciona categoría"
+            value={formGestion.categoria || undefined}
+            onChange={(value) => {
+              const nuevaCategoria = value || '';
+              setFormGestion({ ...formGestion, categoria: nuevaCategoria, instructoraId: '' });
+              cargarInstructorasPorCategoria(nuevaCategoria);
+            }}
+          >
+            {['SAL', 'DULCE', 'BEBIDAS', 'BRUNCH'].map((cat) => (
+              <Select.Option key={cat} value={cat}>{cat}</Select.Option>
+            ))}
+          </Select>
+
+          <Select
+            placeholder={formGestion.categoria ? (loadingInstructorasFiltradas ? 'Cargando...' : (instructorasFiltradas.length === 0 ? 'Sin instructoras para esta categoría' : 'Selecciona instructora')) : 'Primero selecciona una categoría'}
+            showSearch
+            value={formGestion.instructoraId || undefined}
+            onChange={(value) => setFormGestion({ ...formGestion, instructoraId: value || '' })}
+            loading={loadingInstructorasFiltradas}
+            disabled={!formGestion.categoria || loadingInstructorasFiltradas}
+            filterOption={(input, option) =>
+              (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+          >
+            {instructorasFiltradas
+              .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+              .map((item) => (
+                <Select.Option key={item.id} value={String(item.id)}>
+                  {item.nombre} {item.habilitado ? '' : '(Inactiva)'}
+                </Select.Option>
+              ))}
+          </Select>
+          {formGestion.categoria && !loadingInstructorasFiltradas && instructorasFiltradas.length === 0 && (
+            <div style={{ color: '#faad14', fontSize: '12px', marginTop: '-8px' }}>
+              No hay instructoras con categoría {formGestion.categoria} asignadas a este punto de venta.
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Modal Puntos de Venta */}
       <Modal
