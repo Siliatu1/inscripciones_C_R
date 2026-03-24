@@ -1,11 +1,43 @@
 import React, { useState, useEffect } from "react";
 import "./formulario_inscripcion.css"; 
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { message } from "antd";
+import { message, Select } from "antd";
 import axios from "axios";
 
 
 const empleadosCache = {};
+
+const opcionesCargoEvaluar = [
+  {
+    label: <span className="cargo-group-title cargo-group-sal">SAL</span>,
+    options: [
+      { value: "Plancha Sal", label: "Plancha Sal" },
+      { value: "Cocina", label: "Cocina" },
+      { value: "Pitas y Ensaladas", label: "Pitas y Ensaladas" }
+    ]
+  },
+  {
+    label: <span className="cargo-group-title cargo-group-dulce">DULCE</span>,
+    options: [
+      { value: "Postres y Helados", label: "Postres y Helados" }
+    ]
+  },
+  {
+    label: <span className="cargo-group-title cargo-group-bebidas">BEBIDAS</span>,
+    options: [
+      { value: "Bebidas Frias y Calientes", label: "Bebidas Frias y Calientes" }
+    ]
+  },
+  {
+    label: <span className="cargo-group-title cargo-group-brunch">BRUNCH (Solo 1 punto)</span>,
+    options: [
+      { value: "Plancha Sal Brunch", label: "Plancha Sal Brunch" },
+      { value: "Cocina Brunch", label: "Cocina Brunch" },
+      { value: "Postres y Helados Brunch", label: "Postres y Helados Brunch" },
+      { value: "Bebidas Brunch", label: "Bebidas Brunch" }
+    ]
+  }
+];
 
 const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
   const [documento, setDocumento] = useState("");
@@ -13,6 +45,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
   const [empleado, setEmpleado] = useState(null);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
   const [categoria, setCategoria] = useState("");
+  const [cargoEvaluar, setCargoEvaluar] = useState("");
   const [mostrarModal, setMostrarModal] = useState(false);
   
   const cargoCoordinadora = coordinadoraData?.data?.cargo_general || coordinadoraData?.data?.position || "";
@@ -39,8 +72,8 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
   const buscarEmpleado = async (docBusqueda = documento) => {
     const docTrim = String(docBusqueda).trim();
     
-    if (docTrim.length < 6) {
-      setMensaje({ texto: "Por favor ingrese al menos 6 dígitos del documento", tipo: "error" });
+    if (!docTrim) {
+      setMensaje({ texto: "Por favor ingrese un documento", tipo: "error" });
       return;
     }
 
@@ -192,6 +225,7 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
     setDocumento("");
     setEmpleado(null);
     setCategoria("");
+    setCargoEvaluar("");
     setInstructora(null);
     setFormData({
       fotoBuk: "",
@@ -215,6 +249,11 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
 
     if (!categoria) {
       message.error("Por favor seleccione una categoría");
+      return;
+    }
+
+    if (!cargoEvaluar) {
+      message.error("Por favor seleccione el cargo a evaluar");
       return;
     }
 
@@ -248,7 +287,10 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
         pdv: formData.puntoVenta,
         lider: instructora || formData.nombreLider || '',
         foto: formData.fotoBuk || '',
-        cargo: formData.cargo,
+        cargo: cargoEvaluar,
+        cargo_empleado: formData.cargo,
+        cargo_evaluar: cargoEvaluar,
+        cargoEvaluar: cargoEvaluar,
         fecha: new Date().toISOString().split('T')[0],
         categoria: categoriaEnMayusculas
       }
@@ -429,6 +471,22 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
                   <option value="dulce">Dulce</option>
                   <option value="bebidas">Bebidas</option>
                 </select>
+              </div>
+
+              {/* Cargo a evaluar */}
+              <div className="form-section">
+                <label className="form-label">CARGO A EVALUAR *</label>
+                <Select
+                  className="cargo-evaluar-select"
+                  popupClassName="cargo-evaluar-dropdown"
+                  value={cargoEvaluar}
+                  onChange={(value) => setCargoEvaluar(value)}
+                  placeholder="Seleccione un cargo"
+                  options={opcionesCargoEvaluar}
+                  showSearch
+                  optionFilterProp="label"
+                >
+                </Select>
               </div>
 
               {/* Nombre de la instructora - Se muestra después de seleccionar categoría */}

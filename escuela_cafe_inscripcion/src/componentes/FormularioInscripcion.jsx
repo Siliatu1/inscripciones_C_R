@@ -247,8 +247,8 @@ const FormularioInscripcion = ({ onBack, onSubmit, coordinadoraData }) => {
   const buscarEmpleado = async (docBusqueda = documento) => {
     const docTrim = String(docBusqueda).trim();
     
-    if (docTrim.length < 6) {
-      setMensaje({ texto: "Por favor ingrese al menos 6 dígitos del documento", tipo: "error" });
+    if (!docTrim) {
+      setMensaje({ texto: "Por favor ingrese un documento", tipo: "error" });
       return;
     }
 

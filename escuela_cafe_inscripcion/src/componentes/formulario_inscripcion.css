@@ -168,6 +168,67 @@
   cursor: not-allowed;
 }
 
+.cargo-evaluar-select {
+  width: 100%;
+}
+
+.cargo-evaluar-select .ant-select-selector {
+  min-height: 50px !important;
+  border: 2px solid #E8DED0 !important;
+  border-radius: 10px !important;
+  padding: 8px 12px !important;
+  display: flex;
+  align-items: center;
+  box-shadow: none !important;
+}
+
+.cargo-evaluar-select.ant-select-focused .ant-select-selector,
+.cargo-evaluar-select:hover .ant-select-selector {
+  border-color: #8B7355 !important;
+  box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.1) !important;
+}
+
+.cargo-evaluar-dropdown .ant-select-item-group {
+  padding: 8px 12px 6px !important;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cargo-group-title {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+.cargo-group-sal {
+  color: #2f6b17;
+  background: #d9ead3;
+  text-decoration-color: #2f6b17;
+}
+
+.cargo-group-dulce {
+  color: #2b627a;
+  background: #d0e4ed;
+  text-decoration-color: #2b627a;
+}
+
+.cargo-group-bebidas {
+  color: #6b5600;
+  background: #fff3b0;
+  text-decoration-color: #6b5600;
+}
+
+.cargo-group-brunch {
+  color: #6b4d3a;
+  background: #ead6ca;
+  text-decoration-color: #6b4d3a;
+}
+
 .input-group {
   display: flex;
   gap: 10px;
