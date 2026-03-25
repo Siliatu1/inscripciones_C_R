@@ -2,13 +2,26 @@ import React from "react";
 import "./seleccion_menu.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
-const SeleccionMenu = ({ onSelectEscuelaCafe, onSelectEvaluacionToderas, onBack, nombreUsuario }) => {
+const SeleccionMenu = ({
+  onSelectEscuelaCafe,
+  onSelectEvaluacionToderas,
+  onViewPanel,
+  onBack,
+  nombreUsuario,
+}) => {
   return (
     <div className="seleccion-menu-container">
       <div className="seleccion-menu-header">
-        <button className="back-button-sm" onClick={onBack}>
-          <i className="bi bi-box-arrow-left"></i> CERRAR SESIÓN
-        </button>
+        <div className="header-actions-sm">
+          {onViewPanel && (
+            <button className="panel-button-sm" onClick={onViewPanel}>
+              <i className="bi bi-person-circle"></i> VER MI PANEL
+            </button>
+          )}
+          <button className="back-button-sm" onClick={onBack}>
+            <i className="bi bi-box-arrow-left"></i> CERRAR SESIÓN
+          </button>
+        </div>
         <p className="welcome-text">BIENVENIDA DE VUELTA</p>
         <h1 className="user-name">¡Hola, {nombreUsuario}!</h1>
         <p className="subtitle-text">Selecciona qué deseas registrar hoy</p>
@@ -25,7 +38,7 @@ const SeleccionMenu = ({ onSelectEscuelaCafe, onSelectEvaluacionToderas, onBack,
             Registra y gestiona las formaciones.
           </p>
           <button className="btn-ingresar" onClick={onSelectEscuelaCafe}>
-            INGRESAR <i className="bi bi-arrow-right"></i>
+            REGISTRAR <i className="bi bi-arrow-right"></i>
           </button>
         </div>
 
@@ -39,7 +52,7 @@ const SeleccionMenu = ({ onSelectEscuelaCafe, onSelectEvaluacionToderas, onBack,
             Registra evaluaciones y seguimiento del desempeño de las Toderas.
           </p>
           <button className="btn-ingresar" onClick={onSelectEvaluacionToderas}>
-            INGRESAR <i className="bi bi-arrow-right"></i>
+            REGISTRAR <i className="bi bi-arrow-right"></i>
           </button>
         </div> 
       </div>

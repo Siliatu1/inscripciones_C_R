@@ -350,6 +350,10 @@ const AdminPanel = ({ userData, onLogout }) => {
     }
   };
 
+  const handleVerMiPanel = () => {
+    setVistaActual("panel");
+  };
+
 
   const tieneAccesoDual = () => {
     const cargoUsuario = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
@@ -683,8 +687,6 @@ const AdminPanel = ({ userData, onLogout }) => {
         }
       };
 
-      console.log('Crear instructora payload:', payload);
-
       const response = await fetch('https://macfer.crepesywaffles.com/api/cap-instructoras', {
         method: 'POST',
         headers: getStrapiJsonHeaders(),
@@ -692,8 +694,6 @@ const AdminPanel = ({ userData, onLogout }) => {
       });
 
       const responseText = await response.text();
-      console.log('Crear instructora status:', response.status);
-      console.log('Crear instructora response:', responseText);
 
       if (!response.ok) {
         if (response.status === 403) {
@@ -890,7 +890,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       'Punto de Venta': item.puntoVenta || '',
       'Nombre Líder': item.nombreLider || '',
       'Categoría': item.categoria || '',
-      'Día': item.dia || '',
+      'Día Inscripción': item.dia || '',
     }));
 
     const ws = XLSX.utils.json_to_sheet(datosExportar);
@@ -1057,10 +1057,11 @@ const AdminPanel = ({ userData, onLogout }) => {
       width: 120,
     },
     {
-      title: 'Cargo',
-      dataIndex: 'cargo',
-      key: 'cargo',
-      width: 150,
+      title: 'Cargo a Evaluar',
+      dataIndex: 'cargoEvaluar',
+      key: 'cargoEvaluar',
+      width: 180,
+      render: (_, record) => record.cargoEvaluar || record.cargo || 'Sin definir'
     },
     {
       title: 'Punto de Venta',
@@ -1103,7 +1104,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       }
     },
     {
-      title: 'Día',
+      title: 'Día Inscripción',
       dataIndex: 'dia',
       key: 'dia',
       width: 120,
@@ -1270,6 +1271,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       <SeleccionMenu
         onSelectEscuelaCafe={handleAbrirFormularioPuntoVenta}
         onSelectEvaluacionToderas={handleAbrirFormularioEvaluacionTodera}
+        onViewPanel={handleVerMiPanel}
         onBack={handleVolverDesdeSeleccion}
         nombreUsuario={nombreUsuario}
       />
@@ -1367,27 +1369,6 @@ const AdminPanel = ({ userData, onLogout }) => {
 
           <h1 className="admin-title">Hola, {nombreUsuario}</h1>
           <h2 className="admin-subtitle">Gestiona estudiantes y cursos de la escuela de café</h2>
-
-          {/* Cards de Estadísticas */}
-          <div className="stats-container">
-            <div className="stat-card stat-card-green">
-              
-              <div className="stat-content">
-                <h3>{calcularEstadisticas().totalInscritos}</h3>
-                <p>TOTAL INSCRITAS</p>
-                <span>Estudiantes registradas</span>
-              </div>
-            </div>
-
-            <div className="stat-card stat-card-pink" onClick={() => setModalPuntosVentaVisible(true)} style={{ cursor: 'pointer' }}>
-              
-              <div className="stat-content">
-                <h3>{calcularEstadisticas().puntosVenta}</h3>
-                <p>PUNTOS DE VENTA</p>
-                <span>Sedes vinculadas - Click para ver detalles</span>
-              </div>
-            </div>
-          </div>
 
           {/* Botón de Sección Grande */}
           <div className="main-section-button-container">

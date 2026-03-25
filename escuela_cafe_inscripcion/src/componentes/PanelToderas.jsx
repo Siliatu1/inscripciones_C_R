@@ -62,6 +62,7 @@ const PanelToderas = ({ userData, onLogout }) => {
               nombres: item.attributes?.Nombre || '',
               telefono: item.attributes?.telefono || '',
               cargo: item.attributes?.cargo || '',
+              cargoEvaluar: item.attributes?.cargo_evaluar || item.attributes?.cargoEvaluar || item.attributes?.cargo || '',
               puntoVenta: item.attributes?.pdv || '',
               dia: item.attributes?.fecha || '',
               nombreLider: item.attributes?.lider || '',
@@ -210,11 +211,11 @@ const PanelToderas = ({ userData, onLogout }) => {
       'Cédula': item.cedula || '',
       'Nombres': item.nombres || '',
       'Teléfono': item.telefono || '',
-      'Cargo': item.cargo || '',
+      'Cargo a Evaluar': item.cargoEvaluar || item.cargo || '',
       'Punto de Venta': item.puntoVenta || '',
       'Nombre Líder': item.nombreLider || '',
       'Categoría': item.categoria || '',
-      'Día': item.dia || '',
+      'Día Inscripción': item.dia || '',
       'Estado': item.evaluado === null ? 'Pendiente' : (item.evaluado ? 'Evaluado' : 'No evaluado'),
       'Observación': item.observacion || ''
     }));
@@ -225,7 +226,6 @@ const PanelToderas = ({ userData, onLogout }) => {
     XLSX.writeFile(wb, `Evaluacion_Todera_${new Date().toISOString().split('T')[0]}.xlsx`);
     message.success('Archivo Excel exportado exitosamente');
   };
-
   const columns = [
     {
       title: 'Foto',
@@ -286,10 +286,11 @@ const PanelToderas = ({ userData, onLogout }) => {
       width: 120,
     },
     {
-      title: 'Cargo',
-      dataIndex: 'cargo',
-      key: 'cargo',
-      width: 150,
+      title: 'Cargo a Evaluar',
+      dataIndex: 'cargoEvaluar',
+      key: 'cargoEvaluar',
+      width: 170,
+      render: (_, record) => record.cargoEvaluar || record.cargo || 'Sin definir'
     },
     {
       title: 'Punto de Venta',
