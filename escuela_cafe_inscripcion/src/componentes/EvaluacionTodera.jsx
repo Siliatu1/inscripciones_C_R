@@ -459,14 +459,14 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
 
               {/* Categoría */}
               <div className="form-section">
-                <label className="form-label">CATEGORÍA *</label>
+                <label className="form-label">CATEGORÍA A EVALUAR *</label>
                 <select
                   className="form-input"
                   value={categoria}
                   onChange={(e) => setCategoria(e.target.value)}
                   required
                 >
-                  <option value="">Seleccione una categoría</option>
+                  <option value="">Seleccione la categoría</option>
                   <option value="sal">Sal</option>
                   <option value="dulce">Dulce</option>
                   <option value="bebidas">Bebidas</option>

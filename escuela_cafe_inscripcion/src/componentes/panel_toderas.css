@@ -4,6 +4,24 @@
   box-sizing: border-box;
 }
 
+/* Animación de alerta para fechas vencidas */
+@keyframes pulso-alerta {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 77, 79, 0);
+  }
+}
+
+.fecha-alerta {
+  background-color: #ff4d4f !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border: 2px solid #ff1f1f !important;
+  animation: pulso-alerta 1.5s infinite;
+}
+
 .admin-container {
   display: flex;
   flex-direction: column;

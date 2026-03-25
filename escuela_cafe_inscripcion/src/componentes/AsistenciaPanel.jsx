@@ -314,7 +314,7 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
         <main className="admin-main">
           <div className="admin-content">
             <h1 className="admin-title">HOLA, {nombreUsuario}</h1>
-            <h2 className="admin-subtitle">Este es el panel de control de asistencia Escuela del Café.</h2>
+            <h2 className="admin-subtitle">Panel de Líneas y Producto C&W</h2>
 
             {/* Filtros */}
             <div className="filters-container">

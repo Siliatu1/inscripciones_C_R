@@ -323,6 +323,46 @@ const PanelToderas = ({ userData, onLogout }) => {
       )
     },
     {
+      title: 'Fecha Inscripción',
+      dataIndex: 'dia',
+      key: 'fechaInscripcion',
+      width: 140,
+      render: (dia, record) => {
+        // Calcular si han pasado 15 días o más y no está evaluado
+        const fechaInscripcion = dia ? new Date(dia) : null;
+        const hoy = new Date();
+        let diasTranscurridos = 0;
+        let esAlerta = false;
+        
+        if (fechaInscripcion && !isNaN(fechaInscripcion.getTime())) {
+          diasTranscurridos = Math.floor((hoy - fechaInscripcion) / (1000 * 60 * 60 * 24));
+          esAlerta = diasTranscurridos >= 15 && record.evaluado !== true;
+        }
+        
+        return (
+          <span 
+            className={esAlerta ? 'fecha-alerta' : ''}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              display: 'inline-block',
+              fontWeight: esAlerta ? '600' : '400',
+              backgroundColor: esAlerta ? '#ff4d4f' : 'transparent',
+              color: esAlerta ? '#ffffff' : '#333',
+              border: esAlerta ? '2px solid #ff1f1f' : 'none',
+              animation: esAlerta ? 'pulso-alerta 1.5s infinite' : 'none'
+            }}
+            title={esAlerta ? `Han pasado ${diasTranscurridos} días sin evaluar` : ''}
+          >
+            {dia || 'Sin fecha'}
+            {esAlerta && (
+              <i className="bi bi-exclamation-triangle-fill" style={{ marginLeft: '6px', fontSize: '12px' }}></i>
+            )}
+          </span>
+        );
+      }
+    },
+    {
       title: 'Estado',
       key: 'evaluado',
       width: 150,
@@ -396,7 +436,7 @@ const PanelToderas = ({ userData, onLogout }) => {
       {/* Header Superior */}
       <header className="admin-header">
         <div className="header-left">
-          <span className="header-logo-text">EVALUACIÓN TODERA</span>
+          <span className="header-logo-text">PANEL DE LÍNEAS Y PRODUCTO C&W</span>
         </div>
         
         <div className="header-nav">
@@ -415,7 +455,7 @@ const PanelToderas = ({ userData, onLogout }) => {
       <main className="admin-main">
         <div className="admin-content">
           <h1 className="admin-title">Hola, {nombreUsuario}</h1>
-          <h2 className="admin-subtitle">Panel de Control de Evaluación Todera</h2>
+          <h2 className="admin-subtitle">Panel de Líneas y Producto C&W</h2>
           <p className="admin-info" style={{ 
             backgroundColor: '#fff7e6', 
             padding: '12px 20px', 

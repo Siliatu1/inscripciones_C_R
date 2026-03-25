@@ -252,6 +252,7 @@ const AdminPanel = ({ userData, onLogout }) => {
             dia: item.attributes?.fecha || '',
             nombreLider: item.attributes?.lider || '',
             categoria: item.attributes?.categoria || '',
+            evaluado: item.attributes?.estado ?? null,
           }));
         }
 
@@ -1107,17 +1108,50 @@ const AdminPanel = ({ userData, onLogout }) => {
       title: 'Día Inscripción',
       dataIndex: 'dia',
       key: 'dia',
-      width: 120,
+      width: 140,
       sorter: (a, b) => {
         if (!a.dia) return 1;
         if (!b.dia) return -1;
         return a.dia.localeCompare(b.dia);
       },
       defaultSortOrder: 'descend',
-      render: (text) => {
+      render: (text, record) => {
         if (!text) return '';
+        // Calcular si han pasado 15 días o más y no está evaluado
+        const fechaInscripcion = new Date(text);
+        const hoy = new Date();
+        let diasTranscurridos = 0;
+        let esAlerta = false;
+        
+        if (!isNaN(fechaInscripcion.getTime())) {
+          diasTranscurridos = Math.floor((hoy - fechaInscripcion) / (1000 * 60 * 60 * 24));
+          esAlerta = diasTranscurridos >= 15 && record.evaluado !== true;
+        }
+        
         const [year, month, day] = text.split('-');
-        return `${day}/${month}/${year}`;
+        const fechaFormateada = `${day}/${month}/${year}`;
+        
+        return (
+          <span 
+            className={esAlerta ? 'fecha-alerta-admin' : ''}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              display: 'inline-block',
+              fontWeight: esAlerta ? '600' : '400',
+              backgroundColor: esAlerta ? '#ff4d4f' : 'transparent',
+              color: esAlerta ? '#ffffff' : '#333',
+              border: esAlerta ? '2px solid #ff1f1f' : 'none',
+              animation: esAlerta ? 'pulso-alerta-admin 1.5s infinite' : 'none'
+            }}
+            title={esAlerta ? `Han pasado ${diasTranscurridos} días sin evaluar` : ''}
+          >
+            {fechaFormateada}
+            {esAlerta && (
+              <i className="bi bi-exclamation-triangle-fill" style={{ marginLeft: '6px', fontSize: '12px' }}></i>
+            )}
+          </span>
+        );
       }
     },
     {
@@ -1312,7 +1346,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       <header className="admin-header">
         <div className="header-left">
 
-          <span className="header-logo-text">ESCUELA DEL CAFÉ</span>
+          <span className="header-logo-text">PANEL DE LÍNEAS DE PRODUCTO C&W</span>
         </div>
         
         <div className="header-nav">
@@ -1368,7 +1402,7 @@ const AdminPanel = ({ userData, onLogout }) => {
         <div className="admin-content">
 
           <h1 className="admin-title">Hola, {nombreUsuario}</h1>
-          <h2 className="admin-subtitle">Gestiona estudiantes y cursos de la escuela de café</h2>
+          <h2 className="admin-subtitle">Panel de Líneas y Producto C&W</h2>
 
           {/* Botón de Sección Grande */}
           <div className="main-section-button-container">
