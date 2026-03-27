@@ -105,7 +105,7 @@ const PanelToderas = ({ userData, onLogout }) => {
         },
         body: JSON.stringify({
           data: {
-            evaluado: nuevoEstado
+            estado: nuevoEstado
           }
         }),
       });

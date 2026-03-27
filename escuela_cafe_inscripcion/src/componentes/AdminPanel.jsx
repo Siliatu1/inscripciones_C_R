@@ -253,6 +253,7 @@ const AdminPanel = ({ userData, onLogout }) => {
             nombreLider: item.attributes?.lider || '',
             categoria: item.attributes?.categoria || '',
             evaluado: item.attributes?.estado ?? null,
+            observacion: item.attributes?.observacion || '',
           }));
         }
 
@@ -1038,7 +1039,20 @@ const AdminPanel = ({ userData, onLogout }) => {
   ];
 
   // Columnas para tabla todera
-  const columnsTodera = [
+  // Roles que pueden ver estado y observación
+  const rolesVerEstadoObs = [
+    'ADMINISTRADORA PUNTO DE VENTA',
+    'COORDINADOR PUNTO DE VENTA',
+    'COORDINADOR PUNTO DE VENTA (FDS)',
+    'GERENTE PUNTO DE VENTA',
+    'JEFE DESARROLLO DE PRODUCTO',
+    'DIRECTORA DE LINEAS DE PRODUCTO',
+    'ANALISTA DE PRODUCTO',
+  ];
+
+  const cargoUsuarioActual = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
+
+  const columnsToderaBase = [
     {
       title: 'Cédula',
       dataIndex: 'cedula',
@@ -1130,7 +1144,6 @@ const AdminPanel = ({ userData, onLogout }) => {
         
         const [year, month, day] = text.split('-');
         const fechaFormateada = `${day}/${month}/${year}`;
-        
         return (
           <span 
             className={esAlerta ? 'fecha-alerta-admin' : ''}
@@ -1154,6 +1167,33 @@ const AdminPanel = ({ userData, onLogout }) => {
         );
       }
     },
+  ];
+
+  // Agregar columnas de Estado y Observación solo para los roles permitidos
+  const columnsTodera = [
+    ...columnsToderaBase,
+    ...(rolesVerEstadoObs.includes(cargoUsuarioActual)
+      ? [
+          {
+            title: 'Estado',
+            dataIndex: 'evaluado',
+            key: 'estado',
+            width: 120,
+            render: (evaluado) => {
+              if (evaluado === null) return <span style={{ color: '#a8a26a' }}>Pendiente</span>;
+              if (evaluado === true) return <span style={{ color: '#52c41a', fontWeight: 'bold' }}>Evaluado</span>;
+              return <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>No evaluado</span>;
+            }
+          },
+          {
+            title: 'Observación',
+            dataIndex: 'observacion',
+            key: 'observacion',
+            width: 180,
+            render: (obs) => obs ? <span style={{ color: '#3d2817' }}>{obs}</span> : <span style={{ color: '#bbb' }}>Sin observación</span>
+          }
+        ]
+      : []),
     {
       title: 'Acciones',
       key: 'acciones',
@@ -1346,7 +1386,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       <header className="admin-header">
         <div className="header-left">
 
-          <span className="header-logo-text">PANEL DE LÍNEAS DE PRODUCTO C&W</span>
+          <span className="header-logo-text">LÍNEAS DE PRODUCTO C&W</span>
         </div>
         
         <div className="header-nav">
@@ -1402,7 +1442,7 @@ const AdminPanel = ({ userData, onLogout }) => {
         <div className="admin-content">
 
           <h1 className="admin-title">Hola, {nombreUsuario}</h1>
-          <h2 className="admin-subtitle">Panel de Líneas y Producto C&W</h2>
+          <h2 className="admin-subtitle">Líneas y Producto C&W</h2>
 
           {/* Botón de Sección Grande */}
           <div className="main-section-button-container">
@@ -1511,8 +1551,29 @@ const AdminPanel = ({ userData, onLogout }) => {
               <div className="table-card">
                 <div className="table-header">
                   <div className="table-title">
+                    
 
                     <strong>Inscripciones Escuela del Café </strong>
+                    <button
+                      onClick={cargarInscripciones}
+                      style={{
+                        marginLeft: 12,
+                        background: '#6f4e3700',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: 32,
+                        height: 32,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 4px #0001',
+                        transition: 'background 0.2s',
+                      }}
+                      title="Refrescar"
+                    >
+                      <i className="bi bi-arrow-clockwise" style={{ color: '#563C28', fontSize: 18 }}></i>
+                    </button>
                   </div>
                   <span className="table-count">
                     Registros {inscripciones.length} | Filtrados {dataFiltrada.length}
@@ -1622,6 +1683,26 @@ const AdminPanel = ({ userData, onLogout }) => {
                       <i className="bi bi-clipboard-check"></i>
                     </div>
                     <strong>Evaluaciones Todera</strong>
+                    <button
+                      onClick={cargarInscripcionesTodera}
+                      style={{
+                        marginLeft: 12,
+                        background: '#6f4e3700',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: 32,
+                        height: 32,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 4px #0001',
+                        transition: 'background 0.2s',
+                      }}
+                      title="Refrescar"
+                    >
+                      <i className="bi bi-arrow-clockwise" style={{ color: '#6F4E37', fontSize: 18 }}></i>
+                    </button>
                   </div>
                   <span className="table-count">
                     Registros {inscripcionesTodera.length} | Filtrados {dataFiltradaTodera.length}
@@ -1678,6 +1759,26 @@ const AdminPanel = ({ userData, onLogout }) => {
                 <div className="table-header">
                   <div className="table-title">
                     <strong>Gestión Instructoras</strong>
+                    <button
+                      onClick={cargarGestionInstructoras}
+                      style={{
+                        marginLeft: 12,
+                        background: '#6f4e3700',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: 32,
+                        height: 32,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 4px #0001',
+                        transition: 'background 0.2s',
+                      }}
+                      title="Refrescar"
+                    >
+                      <i className="bi bi-arrow-clockwise" style={{ color: '#6F4E37', fontSize: 18 }}></i>
+                    </button>
                   </div>
                   <span className="table-count">
                     Registros {gestionInstructoras.length} | Filtrados {dataFiltradaGestionInstructoras.length}
